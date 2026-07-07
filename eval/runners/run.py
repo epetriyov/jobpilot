@@ -143,7 +143,7 @@ async def main() -> None:
 
     result = await evaluate(args.context)
     report = write_report(result)
-    print(  # noqa: T201 — отчёт eval в stdout
+    print(
         f"[eval:{result.context}] pass_rate={result.metric:.3f} "
         f"threshold={result.threshold:.3f} -> {'PASS' if result.ok else 'FAIL'}\n"
         f"report: {report.relative_to(ROOT)}"
