@@ -1,0 +1,30 @@
+name: Deploy
+
+# Деплой по тегу vX.Y.Z: SSH на VPS, checkout тега, пересборка compose, миграции.
+# Секреты (GitHub Secrets): VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_APP_DIR (опц.).
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            APP_DIR="${{ secrets.VPS_APP_DIR }}"
+            APP_DIR="${APP_DIR:-/opt/jobpilot}"
+            cd "$APP_DIR"
+            git fetch --all --tags
+            git checkout "${{ github.ref_name }}"
+            docker compose build
+            docker compose up -d
+            # миграции применяются одноразовым прогоном внутри образа
+            docker compose run --rm worker alembic upgrade head
+            docker compose ps

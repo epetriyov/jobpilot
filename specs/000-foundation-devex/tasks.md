@@ -53,10 +53,10 @@
 
 **Independent Test**: quickstart.md §8.
 
-- [ ] T018 [P] [US3] `.github/workflows/ci.yml`: jobs lint (ruff+mypy+import-linter), test (unit+contract), integration (Postgres service), recorded-eval — всё без внешних ключей [FR-015]
-- [ ] T019 [P] [US3] `.github/workflows/claude-code-review.yml`: anthropics/claude-code-action@v1, промпт «соответствие спеке этапа и constitution»
-- [ ] T020 [P] [US3] `.github/workflows/deploy.yml`: по тегу `v*`, SSH на VPS (секреты VPS_*), checkout тега → compose build/up → migrate
-- [ ] T021 [P] [US3] `.env.example` по contracts/env.md (без значений) + README-раздел «Секреты и креды»
+- [x] T018 [P] [US3] `.github/workflows/ci.yml`: jobs lint (ruff+mypy+import-linter), test (unit+contract), integration (Postgres service), recorded-eval — всё без внешних ключей [FR-015]
+- [x] T019 [P] [US3] `.github/workflows/claude-code-review.yml`: anthropics/claude-code-action@v1, промпт «соответствие спеке этапа и constitution»
+- [x] T020 [P] [US3] `.github/workflows/deploy.yml`: по тегу `v*`, SSH на VPS (секреты VPS_*), checkout тега → compose build/up → migrate
+- [x] T021 [P] [US3] `.env.example` по contracts/env.md (без значений) + README-раздел «Секреты и креды»
 
 ## Phase 6: User Story 4 — Учёт LLM и восстановимость (P3)
 
