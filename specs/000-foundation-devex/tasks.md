@@ -20,7 +20,7 @@
 
 - [x] T004 [F-U1] Красный тест `tests/unit/test_config.py`: отсутствие обязательной переменной → понятная ошибка с именем → реализация `app/config.py` (pydantic-settings, contracts/env.md)
 - [x] T005 [P] `app/obs/logging.py`: structlog JSON + процессор-санитайзер секретов; красный тест [X-U1] `tests/unit/test_log_sanitizer.py` (значения секретов из тестового env не встречаются в логах)
-- [ ] T006 [P] `app/obs/tracing.py` + `app/obs/metrics.py`: инициализация OTel (OTLP → alloy), единая точка метрик (`job_runs_total`, `vacancies_discovered_total`, `llm_tokens_total`, `llm_cost_usd_total`, `scraper_failures_total`, `digest_sent_total`); недоступность коллектора не роняет сервис (edge case спеки)
+- [x] T006 [P] `app/obs/tracing.py` + `app/obs/metrics.py`: инициализация OTel (OTLP → alloy), единая точка метрик (`job_runs_total`, `vacancies_discovered_total`, `llm_tokens_total`, `llm_cost_usd_total`, `scraper_failures_total`, `digest_sent_total`); недоступность коллектора не роняет сервис (edge case спеки)
 
 ## Phase 3: User Story 1 — Безопасный фундамент (P1) 🎯 MVP
 
@@ -72,7 +72,7 @@
 ## Phase 7: Polish & Cross-Cutting
 
 - [x] T026 [X-I1] E2E smoke-тест `tests/integration/test_e2e_smoke.py`: полный DRY_RUN-пайплайн на фикстурах → digest сформирован, job_run success, каждый шаг — OTel child span (in-memory exporter)
-- [ ] T027 Финальный прогон: `make lint` + `make test` + `make eval CONTEXT=smoke` зелёные; quickstart.md актуален; отчёт пользователю (DoD AGENT_GUIDE.md §7)
+- [x] T027 Финальный прогон: `make lint` + `make test` + `make eval CONTEXT=smoke` зелёные; quickstart.md актуален; отчёт пользователю (DoD AGENT_GUIDE.md §7)
 
 ## Dependencies & Execution Order
 
