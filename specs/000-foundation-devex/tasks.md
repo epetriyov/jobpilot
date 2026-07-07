@@ -12,14 +12,14 @@
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Каркас репозитория по plan.md: `pyproject.toml` (uv, Python 3.12, зависимости, ruff/mypy/pytest/import-linter конфиг), пакеты `app/{domain/{shared,sourcing},ports,application,adapters/{llm,persistence,telegram},bot,worker,obs}`, `tests/{unit,contract,integration,golden}`, `.gitignore`
-- [ ] T002 [P] Контракт слоёв import-linter в pyproject: domain ← ports ← application ← (adapters|bot|worker); нарушение валит `make lint` (constitution I)
-- [ ] T003 [P] `Makefile`: up/down/test/eval/lint/migrate/backup/restore/smoke (AGENT_GUIDE.md §8)
+- [x] T001 Каркас репозитория по plan.md: `pyproject.toml` (uv, Python 3.12, зависимости, ruff/mypy/pytest/import-linter конфиг), пакеты `app/{domain/{shared,sourcing},ports,application,adapters/{llm,persistence,telegram},bot,worker,obs}`, `tests/{unit,contract,integration,golden}`, `.gitignore`
+- [x] T002 [P] Контракт слоёв import-linter в pyproject: domain ← ports ← application ← (adapters|bot|worker); нарушение валит `make lint` (constitution I)
+- [x] T003 [P] `Makefile`: up/down/test/eval/lint/migrate/backup/restore/smoke (AGENT_GUIDE.md §8)
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T004 [F-U1] Красный тест `tests/unit/test_config.py`: отсутствие обязательной переменной → понятная ошибка с именем → реализация `app/config.py` (pydantic-settings, contracts/env.md)
-- [ ] T005 [P] `app/obs/logging.py`: structlog JSON + процессор-санитайзер секретов; красный тест [X-U1] `tests/unit/test_log_sanitizer.py` (значения секретов из тестового env не встречаются в логах)
+- [x] T004 [F-U1] Красный тест `tests/unit/test_config.py`: отсутствие обязательной переменной → понятная ошибка с именем → реализация `app/config.py` (pydantic-settings, contracts/env.md)
+- [x] T005 [P] `app/obs/logging.py`: structlog JSON + процессор-санитайзер секретов; красный тест [X-U1] `tests/unit/test_log_sanitizer.py` (значения секретов из тестового env не встречаются в логах)
 - [ ] T006 [P] `app/obs/tracing.py` + `app/obs/metrics.py`: инициализация OTel (OTLP → alloy), единая точка метрик (`job_runs_total`, `vacancies_discovered_total`, `llm_tokens_total`, `llm_cost_usd_total`, `scraper_failures_total`, `digest_sent_total`); недоступность коллектора не роняет сервис (edge case спеки)
 
 ## Phase 3: User Story 1 — Безопасный фундамент (P1) 🎯 MVP
@@ -28,9 +28,9 @@
 
 **Independent Test**: quickstart.md §1–3, §6.
 
-- [ ] T007 [P] [US1] Красные тесты домена shared `tests/unit/domain/test_shared.py`: SourceRef (site требует site_name, as_key), Salary — все поля опциональны → реализация `app/domain/shared/`
-- [ ] T008 [P] [US1] Красные тесты sourcing [S-U1] [S-U2] [S-U3] [S-U4] `tests/unit/domain/test_sourcing.py`: дедуп S1, кросс-дедуп S2 (30 дней), очистка HTML S3, изоляция падения источника S4 → реализация `app/domain/sourcing/` (Vacancy, normalize_company_title, content_hash, collect_from_sources, события)
-- [ ] T009 [US1] Порты `app/ports/`: VacancySourcePort, NotifierPort, репозитории (contracts/repositories.md) — Protocol-интерфейсы, зависят только от домена
+- [x] T007 [P] [US1] Красные тесты домена shared `tests/unit/domain/test_shared.py`: SourceRef (site требует site_name, as_key), Salary — все поля опциональны → реализация `app/domain/shared/`
+- [x] T008 [P] [US1] Красные тесты sourcing [S-U1] [S-U2] [S-U3] [S-U4] `tests/unit/domain/test_sourcing.py`: дедуп S1, кросс-дедуп S2 (30 дней), очистка HTML S3, изоляция падения источника S4 → реализация `app/domain/sourcing/` (Vacancy, normalize_company_title, content_hash, collect_from_sources, события)
+- [x] T009 [US1] Порты `app/ports/`: VacancySourcePort, NotifierPort, репозитории (contracts/repositories.md) — Protocol-интерфейсы, зависят только от домена
 - [ ] T010 [US1] [F-I1] Красный integration-тест `tests/integration/test_migrations.py` (testcontainers, pgvector/pg16): `alembic upgrade head` создаёт seen_vacancy, labeled_vacancy, llm_call, job_run; повторный прогон идемпотентен → SQLAlchemy-модели `app/adapters/persistence/models.py` + миграция `0001_foundation` + репозитории
 - [ ] T011 [US1] [F-U2] Красный тест `tests/unit/test_owner_only.py`: чужой chat_id → молчаливый игнор + warning → `app/bot/` (aiogram, OwnerOnlyMiddleware, /start, /ping)
 - [ ] T012 [US1] [F-I2] Красный тест `tests/integration/test_dry_run.py`: DRY_RUN=true → publish-мок не вызван, дайджест помечен «ТЕСТ» → use case `app/application/smoke_pipeline.py` (сбор фикстур → дедуп → скоринг фейком → нотификация)
@@ -64,8 +64,8 @@
 
 **Independent Test**: quickstart.md §1 (eval), §7 (бэкап); `pytest tests/contract`.
 
-- [ ] T022 [US4] [F-U3] [R-U1] Красные тесты `tests/unit/test_llm_fake.py`: вызов фейка → запись llm_call с токенами и cost_usd; невалидный ответ → 1 retry → None (graceful skip) → `app/ports/llm.py` (contracts/llm-port.md) + `app/adapters/llm/fake.py`
-- [ ] T023 [US4] [R-C2] [R-C3] Красный contract-suite `tests/contract/test_llm_port_suite.py`, параметризованный fake + instructor_openrouter (respx, записанные ответы `tests/golden/openrouter/`): валидная схема, ровно 1 retry, llm_call у каждого адаптера, cost_usd из usage (фолбэк — прайс конфига), модель из конфига без изменения кода → `app/adapters/llm/instructor_openrouter.py`
+- [x] T022 [US4] [F-U3] [R-U1] Красные тесты `tests/unit/test_llm_fake.py`: вызов фейка → запись llm_call с токенами и cost_usd; невалидный ответ → 1 retry → None (graceful skip) → `app/ports/llm.py` (contracts/llm-port.md) + `app/adapters/llm/fake.py`
+- [x] T023 [US4] [R-C2] [R-C3] Красный contract-suite `tests/contract/test_llm_port_suite.py`, параметризованный fake + instructor_openrouter (respx, записанные ответы `tests/golden/openrouter/`): валидная схема, ровно 1 retry, llm_call у каждого адаптера, cost_usd из usage (фолбэк — прайс конфига), модель из конфига без изменения кода → `app/adapters/llm/instructor_openrouter.py`
 - [ ] T024 [P] [US4] Каркас eval: `eval/datasets/` (формат Приложения TEST_CASES.md, демо-датасет `smoke/v1.jsonl`), `eval/runners/` (базовый раннер с порогами-assertions, отчёт в `eval/reports/<name>_<date>.md`), `make eval CONTEXT=smoke`
 - [ ] T025 [P] [US4] [X-I2] `deploy/backup.sh` (pg_dump, gzip, ротация 14 дней) + красный integration-тест `tests/integration/test_backup_restore.py`: dump → restore на чистую БД → счётчики строк совпадают
 
