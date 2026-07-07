@@ -1,0 +1,62 @@
+// Grafana Alloy — единая точка выхода телеметрии наружу (research.md §2).
+// Сервисы шлют OTLP на alloy:4317; Alloy буферизует и пересылает в Grafana Cloud.
+// Креды Grafana Cloud знает ТОЛЬКО Alloy — сервисы их не видят (constitution IV).
+//
+// Требуемые переменные окружения контейнера alloy:
+//   GRAFANA_CLOUD_OTLP_ENDPOINT   — напр. https://otlp-gateway-<zone>.grafana.net/otlp
+//   GRAFANA_CLOUD_INSTANCE_ID     — числовой instance id (basic-auth user)
+//   GRAFANA_CLOUD_API_TOKEN       — Access Policy token (basic-auth password)
+// Без них Alloy запускается, но экспорт наружу не сконфигурирован (локальный режим).
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// ---- Приём OTLP от сервисов (traces + metrics + logs) ----
+otelcol.receiver.otlp "default" {
+  grpc { endpoint = "0.0.0.0:4317" }
+  http { endpoint = "0.0.0.0:4318" }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    logs    = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
+  }
+}
+
+otelcol.auth.basic "grafana_cloud" {
+  username = sys.env("GRAFANA_CLOUD_INSTANCE_ID")
+  password = sys.env("GRAFANA_CLOUD_API_TOKEN")
+}
+
+otelcol.exporter.otlphttp "grafana_cloud" {
+  client {
+    endpoint = sys.env("GRAFANA_CLOUD_OTLP_ENDPOINT")
+    auth     = otelcol.auth.basic.grafana_cloud.handler
+  }
+}
+
+// ---- Метрики хоста VPS → конвертация в OTLP → тот же экспортёр ----
+// Всё уходит через единый OTLP-endpoint с одними кредами (только 3 GRAFANA_CLOUD_* переменные).
+prometheus.exporter.unix "host" { }
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  forward_to      = [otelcol.receiver.prometheus.host.receiver]
+  scrape_interval = "30s"
+}
+
+otelcol.receiver.prometheus "host" {
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}

@@ -12,6 +12,7 @@ from typing import Any, Literal
 import structlog
 from opentelemetry import trace
 
+from app.obs.metrics import job_runs_total
 from app.obs.tracing import current_trace_id
 from app.ports.repositories import JobRunRepositoryPort
 
@@ -38,13 +39,13 @@ async def run_job(job_name: str, repo: JobRunRepositoryPort, job: JobFn) -> None
                 items_in, items_out = await job(ctx)
             except Exception as exc:
                 await repo.finish(run_id, status="error", error=repr(exc))
+                job_runs_total.add(1, {"job": job_name, "status": "error"})
                 log.error("job_failed", error=str(exc))
                 raise JobFailed(job_name) from exc
 
-            status: Literal["success", "partial"] = (
-                "partial" if ctx.get("partial") else "success"
-            )
+            status: Literal["success", "partial"] = "partial" if ctx.get("partial") else "success"
             await repo.finish(run_id, status=status, items_in=items_in, items_out=items_out)
+            job_runs_total.add(1, {"job": job_name, "status": status})
             log.info("job_finished", status=status, items_in=items_in, items_out=items_out)
         finally:
             structlog.contextvars.clear_contextvars()

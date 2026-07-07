@@ -15,6 +15,11 @@ import structlog
 from opentelemetry import trace
 
 from app.domain.sourcing import DedupIndex, Vacancy, collect_from_sources
+from app.obs.metrics import (
+    digest_sent_total,
+    scraper_failures_total,
+    vacancies_discovered_total,
+)
 from app.ports.notifier import NotifierPort, PublisherPort
 
 log = structlog.get_logger("application.smoke_pipeline")
@@ -49,12 +54,17 @@ class RunSmokePipeline:
             collected = collect_from_sources(self._sources)
             span.set_attribute("vacancies.in", len(collected.vacancies))
             for failure in collected.failures:
+                scraper_failures_total.add(1, {"site": failure.source})
                 log.warning("source_fetch_failed", source=failure.source, error=failure.error)
 
         with tracer.start_as_current_span("smoke.dedup"):
             index = DedupIndex()
             now = datetime.now(UTC)
-            fresh = [v for v in collected.vacancies if index.ingest(v, now=now) is not None]
+            fresh = []
+            for vacancy in collected.vacancies:
+                if index.ingest(vacancy, now=now) is not None:
+                    fresh.append(vacancy)
+                    vacancies_discovered_total.add(1, {"source": vacancy.source_ref.source})
 
         with tracer.start_as_current_span("smoke.publish"):
             if self._dry_run:
@@ -65,6 +75,7 @@ class RunSmokePipeline:
         with tracer.start_as_current_span("smoke.notify"):
             digest = self._render_digest(fresh)
             await self._notifier.send_digest(digest)
+            digest_sent_total.add(1, {"dry_run": str(self._dry_run).lower()})
 
         return SmokeResult(
             dry_run=self._dry_run, digest_items=len(fresh), partial=collected.partial

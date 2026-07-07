@@ -9,6 +9,7 @@ import structlog
 from pydantic import ValidationError
 
 from app.domain.shared import PromptVersion
+from app.obs.metrics import record_llm_metrics
 from app.obs.tracing import current_trace_id
 from app.ports.llm import LlmCallRecord, LlmCallRecorderPort, T, wrap_untrusted_data
 
@@ -100,6 +101,13 @@ class FakeLlm:
                 latency_ms=int((time.perf_counter() - started) * 1000),
                 trace_id=current_trace_id(),
             )
+        )
+        record_llm_metrics(
+            purpose=purpose,
+            model=self.model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost,
         )
         return result
 

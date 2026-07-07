@@ -24,3 +24,13 @@ scraper_failures_total = _meter.create_counter(
 digest_sent_total = _meter.create_counter(
     "digest_sent_total", description="Отправленные дайджесты (алерт 10:15 МСК)", unit="1"
 )
+
+
+def record_llm_metrics(
+    *, purpose: str, model: str, input_tokens: int, output_tokens: int, cost_usd: float
+) -> None:
+    """Инкремент метрик LLM-вызова (вызывается адаптерами LlmPort)."""
+    attrs = {"purpose": purpose, "model": model}
+    llm_tokens_total.add(input_tokens, {**attrs, "direction": "in"})
+    llm_tokens_total.add(output_tokens, {**attrs, "direction": "out"})
+    llm_cost_usd_total.add(cost_usd, attrs)

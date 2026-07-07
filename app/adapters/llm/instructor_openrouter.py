@@ -17,6 +17,7 @@ from openai import AsyncOpenAI
 
 from app.config import Settings
 from app.domain.shared import PromptVersion
+from app.obs.metrics import record_llm_metrics
 from app.obs.tracing import current_trace_id
 from app.ports.llm import LlmCallRecord, LlmCallRecorderPort, T, wrap_untrusted_data
 
@@ -97,6 +98,13 @@ class InstructorOpenRouterLlm:
                 latency_ms=latency_ms,
                 trace_id=current_trace_id(),
             )
+        )
+        record_llm_metrics(
+            purpose=purpose,
+            model=model,
+            input_tokens=in_tokens,
+            output_tokens=out_tokens,
+            cost_usd=cost,
         )
         return result
 
