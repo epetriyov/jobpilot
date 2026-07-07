@@ -113,9 +113,7 @@ async def test_fake_llm_never_raises_on_exhausted_responses() -> None:
 async def test_model_name_configurable(model_name: str) -> None:
     """[R-C3]-механика: имя модели — параметр, не хардкод."""
     recorder = RecorderSpy()
-    llm = FakeLlm(
-        recorder=recorder, model=model_name, responses=['{"score": 5, "reason": "r"}']
-    )
+    llm = FakeLlm(recorder=recorder, model=model_name, responses=['{"score": 5, "reason": "r"}'])
 
     await llm.complete(
         purpose="scoring", prompt_version=PV, system="s", data="d", response_model=Score

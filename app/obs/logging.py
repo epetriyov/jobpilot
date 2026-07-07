@@ -45,9 +45,7 @@ def make_sanitizer(
     return sanitize
 
 
-def configure_logging(
-    *, secret_values: Iterable[str] = (), stream: TextIO | None = None
-) -> None:
+def configure_logging(*, secret_values: Iterable[str] = (), stream: TextIO | None = None) -> None:
     """Настроить structlog: JSON в stdout, ISO-время, санитайзер секретов."""
     logging.basicConfig(
         format="%(message)s", stream=stream or sys.stdout, level=logging.INFO, force=True

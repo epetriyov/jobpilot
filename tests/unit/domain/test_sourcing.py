@@ -48,7 +48,7 @@ class TestS1SameSourceDedup:
 
 
 class TestS2CrossSourceDedup:
-    """[S-U2] Та же нормализованная (company,title) из другого источника за 30 дней → duplicate_of."""
+    """[S-U2] Та же (company,title) из другого источника за 30 дней → duplicate_of."""
 
     def test_duplicate_within_30_days_marked(self) -> None:
         index = DedupIndex()
@@ -117,9 +117,7 @@ class TestS4SourceIsolation:
         def source_c() -> list[Vacancy]:
             return ok_c
 
-        result = collect_from_sources(
-            {"hh": source_a, "getmatch": source_b, "vk": source_c}
-        )
+        result = collect_from_sources({"hh": source_a, "getmatch": source_b, "vk": source_c})
 
         assert result.vacancies == ok_a + ok_c
         assert [type(e) for e in result.failures] == [SourceFetchFailed]

@@ -27,6 +27,6 @@ def collect_from_sources(sources: dict[str, SourceFetcher]) -> CollectResult:
     for name, fetch in sources.items():
         try:
             result.vacancies.extend(fetch())
-        except Exception as exc:  # noqa: BLE001 — изоляция любого падения источника
+        except Exception as exc:
             result.failures.append(SourceFetchFailed(source=name, error=str(exc)))
     return result

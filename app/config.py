@@ -54,11 +54,7 @@ class Settings(BaseSettings):
         try:
             return cls(_env_file=env_file)
         except ValidationError as exc:
-            missing = [
-                str(error["loc"][0])
-                for error in exc.errors()
-                if error["type"] == "missing"
-            ]
+            missing = [str(error["loc"][0]) for error in exc.errors() if error["type"] == "missing"]
             if missing:
                 raise ConfigError(
                     "Отсутствуют обязательные переменные окружения: " + ", ".join(missing)

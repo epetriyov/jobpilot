@@ -135,9 +135,7 @@ class OpenRouterHarness:
 
     def requested_models(self) -> list[str]:
         assert self._route is not None
-        return [
-            json.loads(call.request.content)["model"] for call in self._route.calls
-        ]
+        return [json.loads(call.request.content)["model"] for call in self._route.calls]
 
     def sent_messages(self) -> list[dict[str, Any]]:
         assert self._route is not None

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Sequence
+from typing import Any, cast
 
 import instructor
 import structlog
@@ -71,16 +72,16 @@ class InstructorOpenRouterLlm:
         result: T | None = None
         completion = None
         try:
-            result, completion = await self._client.chat.completions.create_with_completion(
+            raw, completion = await self._client.chat.completions.create_with_completion(
                 model=model,
                 response_model=response_model,
-                messages=messages,
+                messages=cast("Any", messages),
                 max_retries=MAX_RETRIES,
                 extra_body={"usage": {"include": True}},
             )
             # чистый экземпляр схемы: порт не протекает internals instructor (_raw_response)
-            result = response_model.model_validate(result.model_dump())
-        except Exception:  # noqa: BLE001 — невалидный выход после ретрая не роняет пайплайн
+            result = response_model.model_validate(raw.model_dump())
+        except Exception:
             log.warning("llm_call_skipped", purpose=purpose, model=model)
 
         latency_ms = int((time.perf_counter() - started) * 1000)

@@ -6,7 +6,7 @@ import time
 from collections.abc import Sequence
 
 import structlog
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from app.domain.shared import PromptVersion
 from app.obs.tracing import current_trace_id

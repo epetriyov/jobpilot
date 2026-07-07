@@ -31,9 +31,9 @@
 - [x] T007 [P] [US1] Красные тесты домена shared `tests/unit/domain/test_shared.py`: SourceRef (site требует site_name, as_key), Salary — все поля опциональны → реализация `app/domain/shared/`
 - [x] T008 [P] [US1] Красные тесты sourcing [S-U1] [S-U2] [S-U3] [S-U4] `tests/unit/domain/test_sourcing.py`: дедуп S1, кросс-дедуп S2 (30 дней), очистка HTML S3, изоляция падения источника S4 → реализация `app/domain/sourcing/` (Vacancy, normalize_company_title, content_hash, collect_from_sources, события)
 - [x] T009 [US1] Порты `app/ports/`: VacancySourcePort, NotifierPort, репозитории (contracts/repositories.md) — Protocol-интерфейсы, зависят только от домена
-- [ ] T010 [US1] [F-I1] Красный integration-тест `tests/integration/test_migrations.py` (testcontainers, pgvector/pg16): `alembic upgrade head` создаёт seen_vacancy, labeled_vacancy, llm_call, job_run; повторный прогон идемпотентен → SQLAlchemy-модели `app/adapters/persistence/models.py` + миграция `0001_foundation` + репозитории
-- [ ] T011 [US1] [F-U2] Красный тест `tests/unit/test_owner_only.py`: чужой chat_id → молчаливый игнор + warning → `app/bot/` (aiogram, OwnerOnlyMiddleware, /start, /ping)
-- [ ] T012 [US1] [F-I2] Красный тест `tests/integration/test_dry_run.py`: DRY_RUN=true → publish-мок не вызван, дайджест помечен «ТЕСТ» → use case `app/application/smoke_pipeline.py` (сбор фикстур → дедуп → скоринг фейком → нотификация)
+- [x] T010 [US1] [F-I1] Красный integration-тест `tests/integration/test_migrations.py` (testcontainers, pgvector/pg16): `alembic upgrade head` создаёт seen_vacancy, labeled_vacancy, llm_call, job_run; повторный прогон идемпотентен → SQLAlchemy-модели `app/adapters/persistence/models.py` + миграция `0001_foundation` + репозитории
+- [x] T011 [US1] [F-U2] Красный тест `tests/unit/test_owner_only.py`: чужой chat_id → молчаливый игнор + warning → `app/bot/` (aiogram, OwnerOnlyMiddleware, /start, /ping)
+- [x] T012 [US1] [F-I2] Красный тест `tests/integration/test_dry_run.py`: DRY_RUN=true → publish-мок не вызван, дайджест помечен «ТЕСТ» → use case `app/application/smoke_pipeline.py` (сбор фикстур → дедуп → скоринг фейком → нотификация)
 - [ ] T013 [US1] Dockerfile + docker-compose.yml (bot, worker, db=pgvector:pg16 без публикации порта наружу, alloy) + healthchecks; `make up` с нуля
 
 ## Phase 4: User Story 2 — Наблюдаемость и алерты (P2)
@@ -42,7 +42,7 @@
 
 **Independent Test**: quickstart.md §4–5.
 
-- [ ] T014 [US2] [F-I3] Красный тест `tests/integration/test_job_run.py`: упавший job → job_run.status=error, error заполнен, trace_id сквозной в логах → `app/worker/job_runner.py` (root span + JobRun + structlog bind trace_id), точка входа `app/worker/__main__.py` (APScheduler, Europe/Moscow)
+- [x] T014 [US2] [F-I3] Красный тест `tests/integration/test_job_run.py`: упавший job → job_run.status=error, error заполнен, trace_id сквозной в логах → `app/worker/job_runner.py` (root span + JobRun + structlog bind trace_id), точка входа `app/worker/__main__.py` (APScheduler, Europe/Moscow)
 - [ ] T015 [P] [US2] `deploy/alloy/config.alloy`: OTLP-приём (4317) → batch → Grafana Cloud (env-подстановки GRAFANA_CLOUD_*); host-метрики; graceful работа без кредов (локальный режим)
 - [ ] T016 [P] [US2] `deploy/grafana/dashboard.json`: панели job'ов (успех/ошибки), вакансии по источникам, LLM-токены/стоимость
 - [ ] T017 [P] [US2] `deploy/grafana/alerts/` + `provision.sh`: contact point Telegram (владелец) и правила — job failed; дайджест не отправлен к 10:15 МСК; scraper_failures (research.md §3)
@@ -71,7 +71,7 @@
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T026 [X-I1] E2E smoke-тест `tests/integration/test_e2e_smoke.py`: полный DRY_RUN-пайплайн на фикстурах → digest сформирован, job_run success, каждый шаг — OTel child span (in-memory exporter)
+- [x] T026 [X-I1] E2E smoke-тест `tests/integration/test_e2e_smoke.py`: полный DRY_RUN-пайплайн на фикстурах → digest сформирован, job_run success, каждый шаг — OTel child span (in-memory exporter)
 - [ ] T027 Финальный прогон: `make lint` + `make test` + `make eval CONTEXT=smoke` зелёные; quickstart.md актуален; отчёт пользователю (DoD AGENT_GUIDE.md §7)
 
 ## Dependencies & Execution Order
