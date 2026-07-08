@@ -12,9 +12,9 @@
 
 ## Phase 1: Foundational (Blocking Prerequisites)
 
-- [ ] T101 Конфиг этапа 1: `HH_*`, `HH_SEARCH_QUERIES`, `DIGEST_CRON`, `PUBLISH_INTERVAL_HOURS`, `FEWSHOT_*` в `app/config.py` (contracts/env.md); секреты HH → `secret_values()`; красный тест: значения HH-токенов маскируются в логах ([X-U1] расширение)
-- [ ] T102 [F-I1] Миграция `0002_stage1` (data-model.md: снапшот+скор в seen_vacancy, индекс) + красный integration-тест: upgrade head идемпотентен, новые колонки на месте
-- [ ] T103 [P] Домен relevance (красные тесты [R-U2] [R-U3] → реализация): `app/domain/relevance/` — Score VO (0..100, reason≤200), `select_for_digest` (порог/топ-50/убывание), `build_few_shot` (≤10 последних, якоря 85/15)
+- [x] T101 Конфиг этапа 1: `HH_*`, `HH_SEARCH_QUERIES`, `DIGEST_CRON`, `PUBLISH_INTERVAL_HOURS`, `FEWSHOT_*` в `app/config.py` (contracts/env.md); секреты HH → `secret_values()`; красный тест: значения HH-токенов маскируются в логах ([X-U1] расширение)
+- [x] T102 [F-I1] Миграция `0002_stage1` (data-model.md: снапшот+скор в seen_vacancy, индекс) + красный integration-тест: upgrade head идемпотентен, новые колонки на месте
+- [x] T103 [P] Домен relevance (красные тесты [R-U2] [R-U3] → реализация): `app/domain/relevance/` — Score VO (0..100, reason≤200), `select_for_digest` (порог/топ-50/убывание), `build_few_shot` (≤10 последних, якоря 85/15)
 
 ## Phase 2: User Story 1 — Дайджест (P1) 🎯 MVP
 

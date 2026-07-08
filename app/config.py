@@ -34,6 +34,26 @@ class Settings(BaseSettings):
     digest_score_threshold: int = Field(60, alias="DIGEST_SCORE_THRESHOLD")
     digest_max_items: int = Field(50, alias="DIGEST_MAX_ITEMS")
 
+    # --- HH (этап 1; опциональны — без них HH-функции не активируются) ---
+    hh_client_id: str | None = Field(None, alias="HH_CLIENT_ID")
+    hh_client_secret: SecretStr | None = Field(None, alias="HH_CLIENT_SECRET")
+    hh_refresh_token: SecretStr | None = Field(None, alias="HH_REFRESH_TOKEN")
+    hh_resume_id: str | None = Field(None, alias="HH_RESUME_ID")
+    hh_user_agent: str = Field("JobPilot/0.1 (jobpilot-owner)", alias="HH_USER_AGENT")
+    hh_search_queries_raw: str = Field(
+        "Engineering Manager;Head of Engineering;Руководитель разработки",
+        alias="HH_SEARCH_QUERIES",
+    )
+    hh_search_pages: int = Field(2, alias="HH_SEARCH_PAGES")
+    hh_request_pause_sec: float = Field(0.5, alias="HH_REQUEST_PAUSE_SEC")
+    publish_interval_hours: int = Field(4, alias="PUBLISH_INTERVAL_HOURS")
+    fewshot_limit: int = Field(10, alias="FEWSHOT_LIMIT")
+    fewshot_text_limit: int = Field(800, alias="FEWSHOT_TEXT_LIMIT")
+
+    @property
+    def hh_search_queries(self) -> list[str]:
+        return [q.strip() for q in self.hh_search_queries_raw.split(";") if q.strip()]
+
     # --- LLM (модели per-purpose — свап без кода, PLAN.md §2) ---
     llm_base_url: str = Field("https://openrouter.ai/api/v1", alias="LLM_BASE_URL")
     llm_model_scoring: str = Field("google/gemini-2.5-flash-lite", alias="LLM_MODEL_SCORING")
@@ -68,5 +88,7 @@ class Settings(BaseSettings):
             self.openrouter_api_key,
             self.postgres_dsn,
             self.grafana_cloud_api_token,
+            self.hh_client_secret,
+            self.hh_refresh_token,
         ]
         return [s.get_secret_value() for s in secrets if s is not None]

@@ -6,23 +6,16 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Literal, Protocol
 
-from pydantic import BaseModel, ConfigDict
-
+from app.domain.relevance import LabeledVacancy
 from app.domain.shared import SourceRef
 from app.domain.sourcing import Vacancy
 
-
-class LabeledVacancy(BaseModel):
-    """Снапшот размеченной вакансии — топливо few-shot и eval (DOMAIN.md §4)."""
-
-    model_config = ConfigDict(frozen=True)
-
-    source_ref: SourceRef
-    title: str
-    company: str
-    url: str
-    description_text: str
-    verdict: Literal["relevant", "irrelevant"]
+__all__ = [
+    "JobRunRepositoryPort",
+    "LabelRepositoryPort",
+    "LabeledVacancy",
+    "SeenVacancyRepositoryPort",
+]
 
 
 class SeenVacancyRepositoryPort(Protocol):
