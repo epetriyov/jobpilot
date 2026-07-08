@@ -11,6 +11,7 @@ Create Date: 2026-07-08
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 
 import sqlalchemy as sa
 from alembic import op
@@ -20,7 +21,7 @@ down_revision: str | None = "0001_foundation"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
-_NEW_COLUMNS: list[sa.Column[object]] = [
+_NEW_COLUMNS: list[sa.Column[Any]] = [
     sa.Column("title", sa.Text(), nullable=True),
     sa.Column("company", sa.Text(), nullable=True),
     sa.Column("url", sa.Text(), nullable=True),
