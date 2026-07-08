@@ -5,7 +5,7 @@
 ## Предусловия
 
 - Docker + Docker Compose, `uv` (или Python 3.12), `make`.
-- Заполненный `.env` (скопировать из `.env.example`): минимум `TELEGRAM_API_TOKEN`, `OWNER_CHAT_ID`, `OPENROUTER_API_KEY`; для облачной телеметрии — `GRAFANA_CLOUD_*`.
+- Заполненный локальный `.env` (перечень переменных — `contracts/env.md`): минимум `TELEGRAM_API_TOKEN`, `OWNER_CHAT_ID`, `OPENROUTER_API_KEY`; для облачной телеметрии — `GRAFANA_CLOUD_*` и `GCLOUD_HOSTED_METRICS_*`.
 
 ## 1. Локальные проверки без Docker
 

@@ -37,7 +37,7 @@
 | I. Домен чист, слои нерушимы | `app/domain/` — только stdlib+pydantic; направление domain ← ports ← application ← (adapters\|bot\|worker); контракт import-linter в `pyproject.toml`, гоняется в `make lint` и CI | PASS |
 | II. Test-first, без исключений | Каждая задача tasks.md начинается с красного теста по кейсу TEST_CASES.md раздела 0 (+S-U*, R-U1, R-C2/C3, X-U1, X-I2); пирамида U→C→I; красные тесты в main запрещены CI | PASS |
 | III. LLM — измеряемая зависимость | Все вызовы через `LlmPort`; instructor+pydantic-схема; модели/прайсы из конфига (`LLM_MODEL_*`); каждый вызов → `llm_call` (O1); каркас eval/ с append-only датасетами; Langfuse — с этапа 1 (профиль compose подготовлен), llm_call закрывает учёт на этапе 0 | PASS |
-| IV. Безопасность по умолчанию | Секреты только env (`.env`, `.env.example` без значений); санитайзер structlog + тест [X-U1]; DRY_RUN уважается пайплайном; Postgres не публикуется; бот отвечает только владельцу | PASS |
+| IV. Безопасность по умолчанию | Секреты только env (локальный `.env` владельца, в git не попадает; перечень — contracts/env.md); санитайзер structlog + тест [X-U1]; DRY_RUN уважается пайплайном; Postgres не публикуется; бот отвечает только владельцу | PASS |
 | V. Наблюдаемость — не опция | JobRun + root span на каждый job; child spans на шаги; structlog с trace_id; метрики через `obs/metrics.py`; llm_call.cost_usd; дашборд и алерты — артефакты deploy/grafana/ | PASS |
 | VI. Человек в контуре | Этап 0 не совершает внешних действий вообще (DRY_RUN по умолчанию); деплой — по явному тегу; ручная проверка пользователем закрывает этап | PASS |
 
@@ -94,7 +94,7 @@ jobpilot/
 ├── Dockerfile
 ├── Makefile                  # up/down/test/eval/lint/migrate/backup/restore
 ├── pyproject.toml            # deps, ruff, mypy, import-linter, pytest
-└── .env.example
+└── .env                      # локальный, не коммитится; перечень — contracts/env.md
 ```
 
 **Structure Decision**: единый пакет `app/` с гексагональными слоями строго по PLAN.md §4; `bot/` и `worker/` — тонкие точки входа поверх `application/`. Тесты по пирамиде AGENT_GUIDE.md §3. Инфраструктура — `deploy/` + корневые compose/Dockerfile/Makefile.

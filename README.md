@@ -11,7 +11,8 @@ Telegram-агент поиска работы. Методология: Spec-Driv
 
 ```bash
 uv sync --all-extras
-cp .env.example .env      # заполнить обязательные переменные
+# .env ведётся владельцем локально (в git не попадает); список переменных —
+# specs/000-foundation-devex/contracts/env.md
 make lint                 # ruff + mypy + import-linter
 make test                 # unit + contract (+ integration при наличии Docker)
 make eval CONTEXT=smoke   # eval-прогон → отчёт в eval/reports/
@@ -36,7 +37,8 @@ make smoke                # тестовый DRY_RUN-прогон пайплай
 ## Секреты и креды
 
 Все секреты — только в окружении, никогда в коде/логах/промптах (constitution IV).
-Шаблон — [.env.example](.env.example). Значения предоставляет владелец:
+Единственный источник — локальный `.env` владельца (в git не попадает); полный
+перечень переменных — [contracts/env.md](specs/000-foundation-devex/contracts/env.md):
 
 **В `.env` (локально и на VPS):**
 - `TELEGRAM_API_TOKEN` — токен бота (@BotFather)
