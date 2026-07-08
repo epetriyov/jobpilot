@@ -30,10 +30,9 @@ services:
     volumes:
       - ./deploy/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - alloy-data:/var/lib/alloy/data
-      # монтирования для метрик самого VPS (блок prometheus.exporter.unix):
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/host/root:ro,rslave
+      # Монтирования /proc, /sys, / для метрик хоста — ТОЛЬКО на VPS (Linux):
+      # deploy/docker-compose.vps.yml; на macOS rslave-монтирование / не работает.
+      # Подключение на VPS: строка COMPOSE_FILE=... в .env (см. quickstart D3).
     environment:
       GRAFANA_CLOUD_OTLP_ENDPOINT: ${GRAFANA_CLOUD_OTLP_ENDPOINT:-}   # https://otlp-gateway-<zone>.grafana.net/otlp
       GRAFANA_CLOUD_INSTANCE_ID: ${GRAFANA_CLOUD_INSTANCE_ID:-}       # OTLP instance id

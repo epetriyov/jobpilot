@@ -158,6 +158,8 @@ cd /opt/jobpilot && git checkout 000-foundation-devex
 scp ~/Documents/projects/jobpilot/.env <user>@<vps>:/opt/jobpilot/.env
 # на VPS:
 chmod 600 /opt/jobpilot/.env
+# включить VPS-оверлей с host-метриками (только на сервере, НЕ локально):
+echo 'COMPOSE_FILE=docker-compose.yml:deploy/docker-compose.vps.yml' >> /opt/jobpilot/.env
 ```
 Правка для VPS в `/opt/jobpilot/.env`: `POSTGRES_DSN` не нужен для контейнеров
 (compose подставляет свой с host=db), но для скриптов оставьте как есть — backup.sh

@@ -130,29 +130,3 @@ otelcol.auth.basic "grafana_cloud" {
 	username = sys.env("GRAFANA_CLOUD_INSTANCE_ID")
 	password = sys.env("GRAFANA_CLOUD_API_TOKEN")
 }
-
-// ── Метрики самого VPS (CPU, RAM, диск, сеть) ───────────────────────────
-// Работает благодаря монтированиям /proc, /sys, / (ro) в docker-compose.
-prometheus.exporter.unix "host" {
-	procfs_path    = "/host/proc"
-	sysfs_path     = "/host/sys"
-	rootfs_path    = "/host/root"
-	enable_collectors = ["cpu", "meminfo", "filesystem", "loadavg", "netdev", "diskstats"]
-}
-
-prometheus.scrape "host" {
-	targets         = prometheus.exporter.unix.host.targets
-	scrape_interval = "60s"
-	forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
-}
-
-prometheus.remote_write "grafana_cloud" {
-	endpoint {
-		url = sys.env("GCLOUD_HOSTED_METRICS_URL")
-
-		basic_auth {
-			username = sys.env("GCLOUD_HOSTED_METRICS_ID")
-			password = sys.env("GRAFANA_CLOUD_API_TOKEN")
-		}
-	}
-}
