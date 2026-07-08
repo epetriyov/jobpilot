@@ -1,0 +1,21 @@
+# VPS-оверлей (только Linux): метрики самого сервера — модуль
+# deploy/alloy/host-metrics.alloy + host-монтирования /proc, /sys, /.
+# На macOS не подключать: rslave-монтирование / там не поддерживается,
+# а метрики показывали бы виртуалку Docker Desktop, не хост.
+#
+# Подключение на VPS — одной строкой в /opt/jobpilot/.env:
+#   COMPOSE_FILE=docker-compose.yml:deploy/docker-compose.vps.yml
+# после чего обычные `docker compose up -d` / deploy.yml работают без изменений.
+
+services:
+  alloy:
+    # режим каталога: загружает config.alloy + host-metrics.alloy
+    command:
+      - run
+      - /etc/alloy
+      - --storage.path=/var/lib/alloy/data
+    volumes:
+      - ./deploy/alloy/host-metrics.alloy:/etc/alloy/host-metrics.alloy:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave

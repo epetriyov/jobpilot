@@ -1,0 +1,88 @@
+# Правила Grafana Alerting → Telegram владельца (research.md §3, PLAN.md §6).
+# Datasource метрик (Mimir/Prometheus) — uid подставляется в provision.sh (${METRICS_DS_UID}).
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: jobpilot-stage0
+    folder: JobPilot
+    interval: 1m
+    rules:
+      # 1) Плановая задача упала
+      - uid: jp-job-failed
+        title: JobPilot — job failed
+        condition: C
+        for: 0m
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: ${METRICS_DS_UID}
+            model:
+              expr: sum(increase(job_runs_total{status="error"}[15m]))
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        noDataState: OK
+        execErrState: Error
+        labels: { severity: critical }
+        annotations:
+          summary: "Плановая задача JobPilot завершилась ошибкой за последние 15 минут."
+
+      # 2) Дайджест не отправлен к 10:15 МСК (07:15 UTC)
+      #    Алерт живёт постоянно; гасится, как только digest_sent_total вырос сегодня.
+      #    Временное окно проверки задаётся notification policy / mute timing на 07:15–07:30 UTC.
+      - uid: jp-digest-missing
+        title: JobPilot — дайджест не отправлен к 10:15 МСК
+        condition: C
+        for: 0m
+        data:
+          - refId: A
+            relativeTimeRange: { from: 28800, to: 0 }
+            datasourceUid: ${METRICS_DS_UID}
+            model:
+              expr: sum(increase(digest_sent_total[8h]))
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+        noDataState: Alerting  # метрики нет вовсе → дайджеста точно не было
+        execErrState: Error
+        labels: { severity: critical }
+        annotations:
+          summary: "К 10:15 МСК дайджест сегодня не отправлялся (digest_sent_total не вырос)."
+
+      # 3) Рост сбоев скрейперов
+      - uid: jp-scraper-failures
+        title: JobPilot — scraper_failures растут
+        condition: C
+        for: 5m
+        data:
+          - refId: A
+            relativeTimeRange: { from: 1800, to: 0 }
+            datasourceUid: ${METRICS_DS_UID}
+            model:
+              expr: sum(increase(scraper_failures_total[30m]))
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [3] }
+        noDataState: OK
+        execErrState: Error
+        labels: { severity: warning }
+        annotations:
+          summary: "Скрейперы источников сыпятся: >3 сбоев за 30 минут."

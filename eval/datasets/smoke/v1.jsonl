@@ -1,0 +1,3 @@
+{"id": "smoke-1", "input": {"vacancy_text": "Engineering Manager, команда 10 инженеров, Python, k8s"}, "expected": {"valid": true}, "meta": {"added_at": "2026-07-06", "source": "manual"}}
+{"id": "smoke-2", "input": {"vacancy_text": "Курьер на личном авто, подработка"}, "expected": {"valid": true}, "meta": {"added_at": "2026-07-06", "source": "manual"}}
+{"id": "smoke-3", "input": {"vacancy_text": "Head of Engineering, финтех, распределённые системы"}, "expected": {"valid": true}, "meta": {"added_at": "2026-07-06", "source": "manual"}}

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Pre-push гейт JobPilot (соло-режим): детерминированные проверки перед каждым push.
+#
+#   всегда:            make lint + make test-unit (секунды, бесплатно)
+#   опционально (ИИ):  CLAUDE_REVIEW=1 git push  → headless-ревью диффа Claude Code
+#                      (минуты; расходует лимиты подписки Max — поэтому по флагу)
+#
+# Обход в экстренном случае: git push --no-verify
+# Включение хуков (один раз): git config core.hooksPath .githooks
+set -euo pipefail
+
+echo "[pre-push] make lint"
+make lint
+
+echo "[pre-push] make test-unit"
+make test-unit
+
+if [[ "${CLAUDE_REVIEW:-0}" == "1" ]]; then
+  echo "[pre-push] Claude review (skill jobpilot-review)…"
+  claude -p "/jobpilot-review — проревьюй исходящий дифф перед push; если есть BLOCKER, заверши словом FAIL" \
+    --allowedTools "Bash(git *) Bash(make *) Bash(uv *) Read Grep Glob" \
+    | tee /tmp/jobpilot-pre-push-review.txt
+  if grep -q "FAIL" /tmp/jobpilot-pre-push-review.txt; then
+    echo "[pre-push] ⛔ Claude нашёл блокеры — push остановлен (обход: --no-verify)"
+    exit 1
+  fi
+fi
+
+echo "[pre-push] ✅ гейты пройдены"

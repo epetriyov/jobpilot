@@ -1,0 +1,81 @@
+# JobPilot — этап 0: bot, worker, db, alloy.
+# Postgres/Alloy наружу НЕ публикуются (constitution IV; UFW — только 22 на VPS).
+# Профили langfuse/mcp добавляются на этапах 1/6.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jobpilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobpilot}
+      POSTGRES_DB: ${POSTGRES_DB:-jobpilot}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jobpilot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # порт наружу не публикуется — доступ только внутри compose-сети
+
+  # Конфиг настроен пользователем (мастер Grafana Cloud): deploy/alloy/config.alloy.
+  alloy:
+    image: grafana/alloy:latest
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+    volumes:
+      - ./deploy/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy-data:/var/lib/alloy/data
+      # Монтирования /proc, /sys, / для метрик хоста — ТОЛЬКО на VPS (Linux):
+      # deploy/docker-compose.vps.yml; на macOS rslave-монтирование / не работает.
+      # Подключение на VPS: строка COMPOSE_FILE=... в .env (см. quickstart D3).
+    environment:
+      GRAFANA_CLOUD_OTLP_ENDPOINT: ${GRAFANA_CLOUD_OTLP_ENDPOINT:-}   # https://otlp-gateway-<zone>.grafana.net/otlp
+      GRAFANA_CLOUD_INSTANCE_ID: ${GRAFANA_CLOUD_INSTANCE_ID:-}       # OTLP instance id
+      GRAFANA_CLOUD_API_TOKEN: ${GRAFANA_CLOUD_API_TOKEN:-}
+      GCLOUD_HOSTED_METRICS_URL: ${GCLOUD_HOSTED_METRICS_URL:-}       # .../api/prom/push (метрики хоста)
+      GCLOUD_HOSTED_METRICS_ID: ${GCLOUD_HOSTED_METRICS_ID:-}         # Prometheus instance id
+    # ВАЖНО: секции ports НЕТ намеренно — 4317/4318 доступны только контейнерам
+    # внутри сети compose (bot, worker, userbot), снаружи VPS порты закрыты.
+
+  bot:
+    build: .
+    command: python -m app.bot
+    env_file: .env
+    environment:
+      POSTGRES_DSN: postgresql+psycopg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot}@db:5432/${POSTGRES_DB:-jobpilot}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_SERVICE_NAME: jobpilot-bot
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=prod,service.version=${GIT_SHA:-dev}
+    depends_on:
+      db:
+        condition: service_healthy
+      alloy:
+        condition: service_started
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: python -m app.worker
+    env_file: .env
+    environment:
+      POSTGRES_DSN: postgresql+psycopg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot}@db:5432/${POSTGRES_DB:-jobpilot}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_SERVICE_NAME: jobpilot-worker
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=prod,service.version=${GIT_SHA:-dev}
+    depends_on:
+      db:
+        condition: service_healthy
+      alloy:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  alloy-data:

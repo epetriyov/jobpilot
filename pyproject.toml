@@ -1,0 +1,121 @@
+[project]
+name = "jobpilot"
+version = "0.1.0"
+description = "JobPilot — Telegram-агент поиска работы"
+requires-python = ">=3.12"
+dependencies = [
+    "aiogram>=3.13",
+    "apscheduler>=3.10",
+    "httpx>=0.27",
+    "instructor>=1.6",
+    "openai>=1.50",
+    "sqlalchemy[asyncio]>=2.0",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.2",
+    "pgvector>=0.3",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    "structlog>=24.4",
+    "opentelemetry-sdk>=1.27",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.27",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "respx>=0.21",
+    "testcontainers[postgres]>=4.8",
+    "ruff>=0.7",
+    "mypy>=1.11",
+    "import-linter>=2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app", "tests", "eval"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+# RUF001-003: кириллица в строках/докстрингах — норма для русскоязычного проекта.
+ignore = ["SIM117", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "eval"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["app"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["pgvector.*", "apscheduler.*", "instructor.*", "testcontainers.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+markers = [
+    "integration: тесты с реальным Postgres (testcontainers/CI service); требуют Docker",
+]
+
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+# Принцип I constitution: domain ← ports ← application ← (adapters | bot | worker).
+# bot/worker — composition root: им разрешено видеть adapters для сборки зависимостей.
+[[tool.importlinter.contracts]]
+name = "Hexagonal layers"
+type = "layers"
+layers = [
+    "app.bot | app.worker",
+    "app.adapters",
+    "app.application",
+    "app.ports",
+    "app.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain is pure (stdlib + pydantic only)"
+type = "forbidden"
+source_modules = ["app.domain"]
+forbidden_modules = [
+    "sqlalchemy",
+    "alembic",
+    "aiogram",
+    "httpx",
+    "openai",
+    "instructor",
+    "apscheduler",
+    "structlog",
+    "opentelemetry",
+    "app.config",
+    "app.obs",
+]
+
+[[tool.importlinter.contracts]]
+name = "Ports depend only on domain"
+type = "forbidden"
+source_modules = ["app.ports"]
+forbidden_modules = [
+    "sqlalchemy",
+    "alembic",
+    "aiogram",
+    "httpx",
+    "openai",
+    "instructor",
+    "apscheduler",
+    "app.config",
+    "app.obs",
+]

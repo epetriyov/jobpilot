@@ -1,6 +1,6 @@
 # Contract: конфигурация (env)
 
-Источник: `.env` (никогда не коммитится) / переменные окружения. Шаблон — `.env.example`. Загрузка — `app/config.py` (pydantic-settings). Отсутствие обязательной переменной = понятная ошибка с её именем при старте ([F-U1]).
+Источник: `.env` (никогда не коммитится) / переменные окружения. Шаблона `.env.example` в репо нет (решение владельца, 2026-07-08): `.env` ведётся владельцем локально, этот файл — единственный справочник переменных. Загрузка — `app/config.py` (pydantic-settings). Отсутствие обязательной переменной = понятная ошибка с её именем при старте ([F-U1]).
 
 ## Обязательные (сервис не стартует без них)
 
@@ -15,9 +15,15 @@
 
 | Переменная | Назначение |
 |---|---|
-| `GRAFANA_CLOUD_OTLP_ENDPOINT` | OTLP-endpoint стека Grafana Cloud |
-| `GRAFANA_CLOUD_INSTANCE_ID` | instance id (basic-auth user) |
-| `GRAFANA_CLOUD_API_TOKEN` | API-токен (basic-auth password) |
+| `GRAFANA_CLOUD_OTLP_ENDPOINT` | OTLP-endpoint стека Grafana Cloud (`https://otlp-gateway-<zone>.grafana.net/otlp`) |
+| `GRAFANA_CLOUD_INSTANCE_ID` | OTLP instance id (basic-auth user) |
+| `GRAFANA_CLOUD_API_TOKEN` | API-токен (basic-auth password; общий для OTLP и remote_write) |
+| `GCLOUD_HOSTED_METRICS_URL` | Prometheus push-URL (`.../api/prom/push`) — метрики хоста VPS из Alloy |
+| `GCLOUD_HOSTED_METRICS_ID` | Prometheus instance id (basic-auth user для remote_write) |
+
+Эти переменные читает только контейнер alloy (`deploy/alloy/config.alloy`, настроен владельцем через мастер Grafana Cloud); приложение кредов Grafana не видит.
+
+Только на VPS в `.env` добавляется `COMPOSE_FILE=docker-compose.yml:deploy/docker-compose.vps.yml` — подключает host-монтирования `/proc`, `/sys`, `/` для метрик сервера (на macOS не работает и не нужно).
 
 ## Опциональные (дефолты в конфиге)
 

@@ -1,0 +1,45 @@
+name: Claude Code Review
+
+# Агент-ревьюер: проверяет PR на соответствие спеке этапа и constitution
+# (AGENT_GUIDE.md §1, constitution Governance).
+# Auth — подписка Claude Max: секрет CLAUDE_CODE_OAUTH_TOKEN
+# (сгенерировать локально: `claude setup-token`, действует 1 год).
+# Расход идёт из лимитов подписки; отдельный API-баланс не нужен.
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Claude review
+        uses: anthropics/claude-code-action@v1
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        with:
+          prompt: |
+            Ты — ревьюер PR проекта JobPilot. Источники истины (по приоритету):
+            .specify/memory/constitution.md (высший приоритет), docs/DOMAIN.md,
+            docs/AGENT_GUIDE.md, docs/TEST_CASES.md, спека активного этапа в specs/.
+
+            Проверь diff и оставь комментарии по:
+            1. Границы слоёв (constitution I): domain без I/O и внешних импортов;
+               направление domain ← ports ← application ← (adapters|bot|worker).
+            2. Test-first (constitution II): новый прикладной код сопровождается тестами;
+               кейсы ссылаются на TEST_CASES.md.
+            3. LLM (constitution III): вызовы только через LlmPort; модель из конфига,
+               не хардкод; каждый вызов учтён в llm_call; промпты версионируются.
+            4. Безопасность (constitution IV): секреты только из env; нет секретов/тел писем
+               в коде и логах; DRY_RUN уважается.
+            5. Наблюдаемость (constitution V): JobRun/span/structlog на месте.
+            6. Соответствие спеке активного этапа и единому языку DOMAIN.md.
+
+            Будь конкретен, указывай файл и строку. Не одобряй PR с нарушением constitution.

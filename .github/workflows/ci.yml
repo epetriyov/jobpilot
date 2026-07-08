@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# CI выполняется БЕЗ каких-либо внешних ключей (constitution IV, FR-015):
+# recorded-eval гоняется на записанных ответах и фейковом провайдере.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --all-extras
+      - name: ruff
+        run: |
+          uv run ruff check app tests eval
+          uv run ruff format --check app tests eval
+      - name: mypy
+        run: uv run mypy
+      - name: import-linter (границы слоёв)
+        run: uv run lint-imports
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --all-extras
+      - name: unit + contract
+        run: uv run pytest -q -m "not integration"
+
+  integration:
+    runs-on: ubuntu-latest
+    # Docker предустановлен на ubuntu-latest → testcontainers сам поднимает pgvector:pg16.
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --all-extras
+      - name: integration (testcontainers pgvector)
+        run: uv run pytest -q -m integration
+
+  recorded-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --all-extras
+      - name: eval на записанных ответах (без ключей)
+        run: uv run python -m eval.runners.run --context smoke

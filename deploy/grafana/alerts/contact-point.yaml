@@ -1,0 +1,15 @@
+# Contact point: Telegram владельца. Провижн через API (provision.sh) —
+# free-тариф Grafana Cloud не поддерживает файловый provisioning.
+# Секреты (token/chatid) подставляются из окружения в provision.sh, в репо не хранятся.
+apiVersion: 1
+contactPoints:
+  - orgId: 1
+    name: owner-telegram
+    receivers:
+      - uid: owner-telegram
+        type: telegram
+        settings:
+          bottoken: ${TELEGRAM_API_TOKEN}
+          chatid: "${OWNER_CHAT_ID}"
+          # message использует Go-шаблон Grafana Alerting по умолчанию
+        disableResolveMessage: false
