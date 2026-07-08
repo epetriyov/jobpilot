@@ -27,6 +27,8 @@ groups:
               expression: A
               conditions:
                 - evaluator: { type: gt, params: [0] }
+        noDataState: OK
+        execErrState: Error
         labels: { severity: critical }
         annotations:
           summary: "Плановая задача JobPilot завершилась ошибкой за последние 15 минут."
@@ -53,6 +55,8 @@ groups:
               expression: A
               conditions:
                 - evaluator: { type: lt, params: [1] }
+        noDataState: Alerting  # метрики нет вовсе → дайджеста точно не было
+        execErrState: Error
         labels: { severity: critical }
         annotations:
           summary: "К 10:15 МСК дайджест сегодня не отправлялся (digest_sent_total не вырос)."
@@ -77,6 +81,8 @@ groups:
               expression: A
               conditions:
                 - evaluator: { type: gt, params: [3] }
+        noDataState: OK
+        execErrState: Error
         labels: { severity: warning }
         annotations:
           summary: "Скрейперы источников сыпятся: >3 сбоев за 30 минут."
