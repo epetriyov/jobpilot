@@ -15,9 +15,13 @@
 
 | Переменная | Назначение |
 |---|---|
-| `GRAFANA_CLOUD_OTLP_ENDPOINT` | OTLP-endpoint стека Grafana Cloud |
-| `GRAFANA_CLOUD_INSTANCE_ID` | instance id (basic-auth user) |
-| `GRAFANA_CLOUD_API_TOKEN` | API-токен (basic-auth password) |
+| `GRAFANA_CLOUD_OTLP_ENDPOINT` | OTLP-endpoint стека Grafana Cloud (`https://otlp-gateway-<zone>.grafana.net/otlp`) |
+| `GRAFANA_CLOUD_INSTANCE_ID` | OTLP instance id (basic-auth user) |
+| `GRAFANA_CLOUD_API_TOKEN` | API-токен (basic-auth password; общий для OTLP и remote_write) |
+| `GCLOUD_HOSTED_METRICS_URL` | Prometheus push-URL (`.../api/prom/push`) — метрики хоста VPS из Alloy |
+| `GCLOUD_HOSTED_METRICS_ID` | Prometheus instance id (basic-auth user для remote_write) |
+
+Эти переменные читает только контейнер alloy (`deploy/alloy/config.alloy`, настроен владельцем через мастер Grafana Cloud); приложение кредов Grafana не видит.
 
 ## Опциональные (дефолты в конфиге)
 

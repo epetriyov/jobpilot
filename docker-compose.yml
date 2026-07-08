@@ -19,21 +19,29 @@ services:
     restart: unless-stopped
     # порт наружу не публикуется — доступ только внутри compose-сети
 
+  # Конфиг настроен пользователем (мастер Grafana Cloud): deploy/alloy/config.alloy.
   alloy:
     image: grafana/alloy:latest
+    restart: unless-stopped
     command:
       - run
       - /etc/alloy/config.alloy
-      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
     volumes:
       - ./deploy/alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+      # монтирования для метрик самого VPS (блок prometheus.exporter.unix):
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
     environment:
-      GRAFANA_CLOUD_OTLP_ENDPOINT: ${GRAFANA_CLOUD_OTLP_ENDPOINT:-}
-      GRAFANA_CLOUD_INSTANCE_ID: ${GRAFANA_CLOUD_INSTANCE_ID:-}
+      GRAFANA_CLOUD_OTLP_ENDPOINT: ${GRAFANA_CLOUD_OTLP_ENDPOINT:-}   # https://otlp-gateway-<zone>.grafana.net/otlp
+      GRAFANA_CLOUD_INSTANCE_ID: ${GRAFANA_CLOUD_INSTANCE_ID:-}       # OTLP instance id
       GRAFANA_CLOUD_API_TOKEN: ${GRAFANA_CLOUD_API_TOKEN:-}
-    restart: unless-stopped
-    # OTLP-приём 4317/4318 доступен сервисам внутри сети; наружу не публикуется
+      GCLOUD_HOSTED_METRICS_URL: ${GCLOUD_HOSTED_METRICS_URL:-}       # .../api/prom/push (метрики хоста)
+      GCLOUD_HOSTED_METRICS_ID: ${GCLOUD_HOSTED_METRICS_ID:-}         # Prometheus instance id
+    # ВАЖНО: секции ports НЕТ намеренно — 4317/4318 доступны только контейнерам
+    # внутри сети compose (bot, worker, userbot), снаружи VPS порты закрыты.
 
   bot:
     build: .
@@ -42,6 +50,9 @@ services:
     environment:
       POSTGRES_DSN: postgresql+psycopg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot}@db:5432/${POSTGRES_DB:-jobpilot}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_SERVICE_NAME: jobpilot-bot
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=prod,service.version=${GIT_SHA:-dev}
     depends_on:
       db:
         condition: service_healthy
@@ -56,6 +67,9 @@ services:
     environment:
       POSTGRES_DSN: postgresql+psycopg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot}@db:5432/${POSTGRES_DB:-jobpilot}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_SERVICE_NAME: jobpilot-worker
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=prod,service.version=${GIT_SHA:-dev}
     depends_on:
       db:
         condition: service_healthy
@@ -65,3 +79,4 @@ services:
 
 volumes:
   pgdata:
+  alloy-data:
