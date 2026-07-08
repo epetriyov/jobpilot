@@ -14,7 +14,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.config import Settings
 from app.obs.logging import configure_logging
-from app.obs.tracing import setup_tracing
+from app.obs.telemetry import setup_telemetry
 
 log = structlog.get_logger("worker")
 
@@ -22,7 +22,7 @@ log = structlog.get_logger("worker")
 async def main() -> None:
     settings = Settings.load()
     configure_logging(secret_values=settings.secret_values())
-    setup_tracing(
+    setup_telemetry(
         service_name="jobpilot-worker", otlp_endpoint=settings.otel_exporter_otlp_endpoint
     )
 

@@ -13,7 +13,7 @@ import structlog
 from app.application.smoke_pipeline import RunSmokePipeline
 from app.config import Settings
 from app.obs.logging import configure_logging
-from app.obs.tracing import setup_tracing
+from app.obs.telemetry import setup_telemetry
 from app.worker.fixtures import sample_hh
 
 log = structlog.get_logger("worker.smoke")
@@ -35,7 +35,9 @@ class NullPublisher:
 async def main() -> None:
     settings = Settings.load()
     configure_logging(secret_values=settings.secret_values())
-    setup_tracing(service_name="jobpilot-smoke", otlp_endpoint=settings.otel_exporter_otlp_endpoint)
+    setup_telemetry(
+        service_name="jobpilot-smoke", otlp_endpoint=settings.otel_exporter_otlp_endpoint
+    )
 
     pipeline = RunSmokePipeline(
         notifier=StdoutNotifier(),
