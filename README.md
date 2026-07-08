@@ -49,7 +49,7 @@ make smoke                # тестовый DRY_RUN-прогон пайплай
   креды бесплатного аккаунта Grafana Cloud (заводит владелец; до этого телеметрия локальна)
 
 **В GitHub Secrets (не в `.env`):**
-- `ANTHROPIC_API_KEY` — авторевью PR (claude-code-action)
+- `CLAUDE_CODE_OAUTH_TOKEN` — авторевью PR (claude-code-action; из `claude setup-token`, подписка Max)
 - `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `VPS_APP_DIR` — деплой по тегу (deploy.yml)
 - `GRAFANA_URL`, `GRAFANA_SA_TOKEN`, `METRICS_DS_UID` — для `deploy/grafana/provision.sh`
 

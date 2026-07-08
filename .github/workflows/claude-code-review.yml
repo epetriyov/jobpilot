@@ -1,7 +1,10 @@
 name: Claude Code Review
 
 # Агент-ревьюер: проверяет PR на соответствие спеке этапа и constitution
-# (AGENT_GUIDE.md §1, constitution Governance). Требует ANTHROPIC_API_KEY в Secrets.
+# (AGENT_GUIDE.md §1, constitution Governance).
+# Auth — подписка Claude Max: секрет CLAUDE_CODE_OAUTH_TOKEN
+# (сгенерировать локально: `claude setup-token`, действует 1 год).
+# Расход идёт из лимитов подписки; отдельный API-баланс не нужен.
 on:
   pull_request:
     types: [opened, synchronize]
@@ -19,8 +22,9 @@ jobs:
           fetch-depth: 0
       - name: Claude review
         uses: anthropics/claude-code-action@v1
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             Ты — ревьюер PR проекта JobPilot. Источники истины (по приоритету):
             .specify/memory/constitution.md (высший приоритет), docs/DOMAIN.md,
