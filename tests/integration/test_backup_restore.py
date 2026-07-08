@@ -1,5 +1,6 @@
 """[X-I2] backup.sh создаёт дамп; restore на чистую БД проходит; счётчики строк совпадают."""
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -34,7 +35,10 @@ def test_backup_then_restore_preserves_rows(pg_url: str, alembic_config, tmp_pat
     before = _row_count(pg_url)
     assert before == 2
 
-    env = {"POSTGRES_DSN": pg_url, "BACKUP_DIR": str(tmp_path)}
+    # Режим фиксируем явно: тестовая БД — testcontainer, а не compose-сервис db;
+    # auto-режим мог бы уйти в запущенный compose-стек и дампить не ту БД.
+    mode = "direct" if shutil.which("pg_dump") else "client-docker"
+    env = {"POSTGRES_DSN": pg_url, "BACKUP_DIR": str(tmp_path), "BACKUP_MODE": mode}
     subprocess.run(["bash", str(BACKUP_SH)], check=True, env={**_os_environ(), **env})
     dumps = list(tmp_path.glob("jobpilot_*.sql.gz"))
     assert len(dumps) == 1
