@@ -1,4 +1,6 @@
 # Правила Grafana Alerting → Telegram владельца (research.md §3, PLAN.md §6).
+# Алерты смотрят ТОЛЬКО на prod (deployment_environment из OTEL_RESOURCE_ATTRIBUTES;
+# лейбл на датапоинты вешает alloy-transform). Локальная dev-среда алертов не трогает.
 # Datasource метрик (Mimir/Prometheus) — uid подставляется в provision.sh (${METRICS_DS_UID}).
 apiVersion: 1
 groups:
@@ -17,7 +19,7 @@ groups:
             relativeTimeRange: { from: 900, to: 0 }
             datasourceUid: ${METRICS_DS_UID}
             model:
-              expr: sum(increase(job_runs_total{status="error"}[15m]))
+              expr: sum(increase(job_runs_total{status="error", deployment_environment="prod"}[15m]))
               instant: true
               refId: A
           - refId: C
@@ -45,7 +47,7 @@ groups:
             relativeTimeRange: { from: 28800, to: 0 }
             datasourceUid: ${METRICS_DS_UID}
             model:
-              expr: sum(increase(digest_sent_total[8h]))
+              expr: sum(increase(digest_sent_total{deployment_environment="prod"}[8h]))
               instant: true
               refId: A
           - refId: C
@@ -71,7 +73,7 @@ groups:
             relativeTimeRange: { from: 1800, to: 0 }
             datasourceUid: ${METRICS_DS_UID}
             model:
-              expr: sum(increase(scraper_failures_total[30m]))
+              expr: sum(increase(scraper_failures_total{deployment_environment="prod"}[30m]))
               instant: true
               refId: A
           - refId: C
