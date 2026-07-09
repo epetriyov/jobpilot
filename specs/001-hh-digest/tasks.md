@@ -22,8 +22,8 @@
 - [ ] T105 [US1] [S-C1] Красный contract-тест маппинга → `adapters/hh/mapping.py`: JSON HH → Vacancy (Salary(from=X, to=None); description_raw → S3-очистка доменом)
 - [ ] T106 [US1] [S-C2] Красный contract-тест (respx): 401 → refresh → повтор ровно 1 раз; повторный 401 → SourceFetchFailed → `adapters/hh/auth.py` + `client.py` (HH-User-Agent, пауза между запросами [S-C10]-механика)
 - [ ] T107 [US1] [S-C4] Красный contract-тест: отклики → similar → влиты с дедупом → `adapters/hh/source.py` (VacancySourcePort: запросы конфига + similar; полный текст только для невиденных)
-- [ ] T108 [US1] [R-U1] [R-U5] Красные тесты → `application/score_vacancy.py`: скорит только unscored(prompt_version) (R1); невалидный выход → 1 retry → skip warning (R2); few-shot из labeled (R3); llm_call пишется (O1 — фейк)
-- [ ] T109 [US1] [R-U4] [R-C1] Красный тест промпт-сборки: текст вакансии в data-блоке, не в system (R5); ни одна строка секретов из env не попадает в промпт
+- [x] T108 [US1] [R-U1] [R-U5] Красные тесты → `application/score_vacancy.py`: скорит только unscored(prompt_version) (R1); невалидный выход → 1 retry → skip warning (R2); few-shot из labeled (R3); llm_call пишется (O1 — фейк)
+- [x] T109 [US1] [R-U4] [R-C1] Красный тест промпт-сборки: текст вакансии в data-блоке, не в system (R5); ни одна строка секретов из env не попадает в промпт
 - [ ] T110 [US1] Красный integration-тест → `application/run_daily_digest.py`: сбор → mark_seen(снапшот) → скоринг новых → select_for_digest → карточки → mark_digest_sent; DRY_RUN помечает «ТЕСТ» ([F-I2]); частичный сбой источника → partial (S4)
 - [ ] T111 [US1] Бот: рендер карточки (title/company/вилка/score+reason, кнопки 👍/👎/🔗), команда `/digest`; worker: cron 10:00 МСК через run_job; [X-I1] e2e-тест дайджест-флоу на HH-фикстурах со спанами шагов
 
@@ -31,7 +31,7 @@
 
 - [ ] T112 [US2] Красный тест → use case `LabelVacancy`: колбэк 👍/👎 → upsert labeled_vacancy по source_ref из снапшота seen (повторное нажатие обновляет вердикт, не дублирует); событие LabelAdded; строка в `eval/datasets/relevance/v1.jsonl` (append-only)
 - [ ] T113 [US2] Бот: обработчик callback_query (`label:<verdict>:hh:<id>`), подтверждение answerCallbackQuery, обновление клавиатуры; `/train` — счётчики размеченного и остаток до 30
-- [ ] T114 [P] [US2] [R-C3] Contract-тест: смена `LLM_MODEL_SCORING` в конфиге меняет модель в llm_call без правок кода (на записанных ответах)
+- [x] T114 [P] [US2] [R-C3] Contract-тест: смена `LLM_MODEL_SCORING` в конфиге меняет модель в llm_call без правок кода (на записанных ответах)
 
 ## Phase 4: User Story 3 — Publish каждые 4 часа (P2)
 
@@ -44,7 +44,7 @@
 
 ## Phase 6: User Story 5 — OAuth-хелпер (P3)
 
-- [ ] T118 [US5] `app/cli/oauth_hh.py`: интерактивный обмен кода на refresh token, список резюме (выбор HH_RESUME_ID), печать строк для .env; unit-тест логики обмена на respx; токены не логируются
+- [x] T118 [US5] `app/cli/oauth_hh.py`: интерактивный обмен кода на refresh token, список резюме (выбор HH_RESUME_ID), печать строк для .env; unit-тест логики обмена на respx; токены не логируются
 
 ## Phase 7: Eval и Polish
 

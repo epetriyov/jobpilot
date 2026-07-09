@@ -224,6 +224,20 @@ async def test_model_comes_from_config(harness: Harness) -> None:
     assert harness.recorder.records[0].model == "google/gemini-2.5-flash-lite"
 
 
+async def test_r_c3_model_swap_only_via_config() -> None:
+    """[R-C3] T114: LLM_MODEL_SCORING=<другая модель> → скоринг идёт через неё
+    без изменения кода; фиксируется в llm_call.model (на записанных ответах)."""
+    settings = make_settings(LLM_MODEL_SCORING="vendor/custom-model-x")
+    with respx.mock(base_url="https://openrouter.ai") as router:
+        harness = OpenRouterHarness(settings, router)
+        llm = harness.make([VALID])
+        result = await _complete(llm)
+
+    assert result is not None
+    assert harness.requested_models() == ["vendor/custom-model-x"]
+    assert harness.recorder.records[0].model == "vendor/custom-model-x"
+
+
 async def test_data_wrapped_as_untrusted_block(harness: Harness) -> None:
     """R5: внешний текст — внутри data-блока, не на уровне system."""
     llm = harness.make([VALID])

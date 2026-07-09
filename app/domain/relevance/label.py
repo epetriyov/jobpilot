@@ -11,8 +11,12 @@ from app.domain.shared import SourceRef
 Verdict = Literal["relevant", "irrelevant"]
 
 
-class LabeledVacancy(BaseModel):
-    """Снапшот размеченной вакансии — топливо few-shot и eval (DOMAIN.md §4)."""
+class VacancySnapshot(BaseModel):
+    """Снапшот вакансии из реестра виденных (seen_vacancy, поля этапа 1).
+
+    Достаточен для скоринга и разметки без повторного похода в источник —
+    вакансия может быть уже удалена с HH (edge case спеки этапа 1).
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -21,4 +25,9 @@ class LabeledVacancy(BaseModel):
     company: str
     url: str
     description_text: str
+
+
+class LabeledVacancy(VacancySnapshot):
+    """Снапшот размеченной вакансии — топливо few-shot и eval (DOMAIN.md §4)."""
+
     verdict: Verdict
