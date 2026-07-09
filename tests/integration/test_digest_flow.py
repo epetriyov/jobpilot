@@ -159,23 +159,14 @@ async def test_cross_source_duplicate_not_in_digest(db_session) -> None:  # type
     assert notifier2.cards == []
 
 
-async def test_x_i1_each_stage_is_span(db_session) -> None:  # type: ignore[no-untyped-def]
+async def test_x_i1_each_stage_is_span(db_session, span_exporter) -> None:  # type: ignore[no-untyped-def]
     """[X-I1] Каждый шаг дайджеста — отдельный OTel child span."""
-    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-
-    from app.obs.tracing import setup_tracing
-
-    exporter = InMemorySpanExporter()
-    provider = setup_tracing(service_name="test-digest", exporter=None)
-    provider.add_span_processor(SimpleSpanProcessor(exporter))
-
     notifier = SpyNotifier()
     llm = FakeLlm(recorder=RecorderSpy(), responses=[VALID] * 5)
     await make_pipeline(db_session, [FakeSource("hh", [vacancy("span1")])], notifier, llm).run()
     await db_session.commit()
 
-    names = {span.name for span in exporter.get_finished_spans()}
+    names = {span.name for span in span_exporter.get_finished_spans()}
     assert {
         "digest.collect",
         "digest.dedup",
