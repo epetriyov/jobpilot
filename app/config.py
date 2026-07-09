@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     hh_search_pages: int = Field(2, alias="HH_SEARCH_PAGES")
     hh_request_pause_sec: float = Field(0.5, alias="HH_REQUEST_PAUSE_SEC")
     publish_interval_hours: int = Field(4, alias="PUBLISH_INTERVAL_HOURS")
+    digest_cron: str = Field("0 10 * * *", alias="DIGEST_CRON")
     fewshot_limit: int = Field(10, alias="FEWSHOT_LIMIT")
     fewshot_text_limit: int = Field(800, alias="FEWSHOT_TEXT_LIMIT")
 

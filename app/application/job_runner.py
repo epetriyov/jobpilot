@@ -16,8 +16,8 @@ from app.obs.metrics import job_runs_total
 from app.obs.tracing import current_trace_id
 from app.ports.repositories import JobRunRepositoryPort
 
-log = structlog.get_logger("worker.job_runner")
-tracer = trace.get_tracer("jobpilot.worker")
+log = structlog.get_logger("application.job_runner")
+tracer = trace.get_tracer("jobpilot.application")
 
 # job(ctx) -> (items_in, items_out); ctx["partial"]=True переводит прогон в partial
 JobFn = Callable[[dict[str, Any]], Awaitable[tuple[int, int]]]

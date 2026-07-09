@@ -24,19 +24,19 @@
 - [ ] T107 [US1] [S-C4] Красный contract-тест: отклики → similar → влиты с дедупом → `adapters/hh/source.py` (VacancySourcePort: запросы конфига + similar; полный текст только для невиденных)
 - [x] T108 [US1] [R-U1] [R-U5] Красные тесты → `application/score_vacancy.py`: скорит только unscored(prompt_version) (R1); невалидный выход → 1 retry → skip warning (R2); few-shot из labeled (R3); llm_call пишется (O1 — фейк)
 - [x] T109 [US1] [R-U4] [R-C1] Красный тест промпт-сборки: текст вакансии в data-блоке, не в system (R5); ни одна строка секретов из env не попадает в промпт
-- [ ] T110 [US1] Красный integration-тест → `application/run_daily_digest.py`: сбор → mark_seen(снапшот) → скоринг новых → select_for_digest → карточки → mark_digest_sent; DRY_RUN помечает «ТЕСТ» ([F-I2]); частичный сбой источника → partial (S4)
-- [ ] T111 [US1] Бот: рендер карточки (title/company/вилка/score+reason, кнопки 👍/👎/🔗), команда `/digest`; worker: cron 10:00 МСК через run_job; [X-I1] e2e-тест дайджест-флоу на HH-фикстурах со спанами шагов
+- [x] T110 [US1] Красный integration-тест → `application/run_daily_digest.py`: сбор → mark_seen(снапшот) → скоринг новых → select_for_digest → карточки → mark_digest_sent; DRY_RUN помечает «ТЕСТ» ([F-I2]); частичный сбой источника → partial (S4)
+- [x] T111 [US1] Бот: рендер карточки (title/company/вилка/score+reason, кнопки 👍/👎/🔗), команда `/digest`; worker: cron 10:00 МСК через run_job; [X-I1] e2e-тест дайджест-флоу на HH-фикстурах со спанами шагов
 
 ## Phase 3: User Story 2 — Разметка и /train (P1)
 
-- [ ] T112 [US2] Красный тест → use case `LabelVacancy`: колбэк 👍/👎 → upsert labeled_vacancy по source_ref из снапшота seen (повторное нажатие обновляет вердикт, не дублирует); событие LabelAdded; строка в `eval/datasets/relevance/v1.jsonl` (append-only)
-- [ ] T113 [US2] Бот: обработчик callback_query (`label:<verdict>:hh:<id>`), подтверждение answerCallbackQuery, обновление клавиатуры; `/train` — счётчики размеченного и остаток до 30
+- [x] T112 [US2] Красный тест → use case `LabelVacancy`: колбэк 👍/👎 → upsert labeled_vacancy по source_ref из снапшота seen (повторное нажатие обновляет вердикт, не дублирует); событие LabelAdded; строка в `eval/datasets/relevance/v1.jsonl` (append-only)
+- [x] T113 [US2] Бот: обработчик callback_query (`label:<verdict>:hh:<id>`), подтверждение answerCallbackQuery, обновление клавиатуры; `/train` — счётчики размеченного и остаток до 30
 - [x] T114 [P] [US2] [R-C3] Contract-тест: смена `LLM_MODEL_SCORING` в конфиге меняет модель в llm_call без правок кода (на записанных ответах)
 
 ## Phase 4: User Story 3 — Publish каждые 4 часа (P2)
 
 - [ ] T115 [US3] Golden `publish_429.json`; красный contract-тест [S-C3]: 429/touch_limit → skip без ретрая, лог info, метрика publish_skipped, job success → `adapters/hh/publish.py` (PublisherPort)
-- [ ] T116 [US3] `application/publish_resume.py` + worker-слот 4ч + `/publish`; DRY_RUN не вызывает HH ([F-I2]); метрика publish_skipped в `obs/metrics.py`
+- [~] T116 (use case+worker+/publish готовы; HH-адаптер ждёт golden) [US3] `application/publish_resume.py` + worker-слот 4ч + `/publish`; DRY_RUN не вызывает HH ([F-I2]); метрика publish_skipped в `obs/metrics.py`
 
 ## Phase 5: User Story 4 — Переписка HH (P2)
 
