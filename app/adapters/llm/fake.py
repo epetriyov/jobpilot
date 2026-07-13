@@ -1,9 +1,11 @@
-"""Фейковый LlmPort для тестов: детерминированные ответы, честный учёт llm_call (O1)."""
+"""Фейковый LlmPort для тестов и мок-режима: детерминизм + честный учёт llm_call (O1)."""
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import structlog
 from pydantic import ValidationError
@@ -33,9 +35,11 @@ class FakeLlm:
         fake_cost_usd: float = 0.000123,
         fake_input_tokens: int = 120,
         fake_output_tokens: int = 25,
+        response_factory: Callable[[str], str] | None = None,
     ) -> None:
         self._recorder = recorder
         self._responses = list(responses)
+        self._response_factory = response_factory
         self.model = model
         self._include_cost = include_cost_in_usage
         self._price_in = price_per_mtok_in
@@ -59,6 +63,10 @@ class FakeLlm:
     ) -> T | None:
         started = time.perf_counter()
         self.sent_messages = _build_messages(system, data, few_shot)
+
+        # мок-режим: очередь пуста → детерминированный ответ из фабрики
+        if not self._responses and self._response_factory is not None:
+            self._responses.append(self._response_factory(data))
 
         result: T | None = None
         attempts_left = 1 + MAX_RETRIES
@@ -110,6 +118,26 @@ class FakeLlm:
             cost_usd=cost,
         )
         return result
+
+
+_LOW_SCORE_MARKERS = ("продаж", "тестировщик", "junior", "1с")
+
+
+def stub_scoring_response(data: str) -> str:
+    """Детерминированный мок-скоринг для HH_MODE/LLM_MODE=fake.
+
+    Скор — хеш текста в диапазоне 35..95; явный «мусор» (маркеры не-EM ролей)
+    прижимается вниз, чтобы порог дайджеста (R4) было видно на моках.
+    """
+    digest = int(hashlib.sha256(data.encode()).hexdigest(), 16)
+    lowered = data.lower()
+    if any(marker in lowered for marker in _LOW_SCORE_MARKERS):
+        score = 15 + digest % 30  # 15..44 — ниже порога 60
+        reason = "Мок-скоринг: роль далека от Engineering Manager"
+    else:
+        score = 62 + digest % 34  # 62..95 — проходит порог
+        reason = "Мок-скоринг: управленческая роль, похоже на профиль EM"
+    return json.dumps({"score": score, "reason": reason}, ensure_ascii=False)
 
 
 def _build_messages(

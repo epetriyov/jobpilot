@@ -11,6 +11,8 @@ from pathlib import Path
 import structlog
 from aiogram import Bot
 
+from app.adapters.hh.fake import FakeHhVacancySource
+from app.adapters.llm.fake import FakeLlm, stub_scoring_response
 from app.adapters.llm.instructor_openrouter import InstructorOpenRouterLlm
 from app.adapters.llm.prompts import load_system_prompt
 from app.adapters.persistence.database import make_engine, make_session_factory
@@ -58,26 +60,49 @@ class Services:
         self._engine = make_engine(settings.postgres_dsn.get_secret_value())
         self._factory = make_session_factory(self._engine)
         self._system_prompt = _system_prompt()
+        # один инстанс на процесс: счётчик fetch'ей даёт «новые» вакансии на повторный /digest
+        self._fake_hh = FakeHhVacancySource()
+        log.info(
+            "services_ready",
+            hh_mode=settings.resolved_hh_mode(),
+            llm_mode=settings.resolved_llm_mode(),
+            dry_run=settings.dry_run,
+        )
 
     def _sources(self) -> list[VacancySourcePort]:
+        if self._settings.resolved_hh_mode() == "fake":
+            return [self._fake_hh]
         if not self._settings.hh_refresh_token:
-            log.warning("hh_source_disabled", reason="нет HH-кредов в конфиге")
+            log.warning("hh_source_disabled", reason="HH_MODE=real, но нет HH-кредов")
             return []
         # T107: HhVacancySource подключается после записи golden-файлов
         return []
+
+    def _llm(self, session: object):  # type: ignore[no-untyped-def]
+        recorder = LlmCallRepository(session)  # type: ignore[arg-type]
+        if self._settings.resolved_llm_mode() == "fake":
+            # стаб-скоринг: детерминированные скоры, честный llm_call (O1)
+            return FakeLlm(
+                recorder=recorder,
+                model="fake/scoring-stub",
+                response_factory=stub_scoring_response,
+            )
+        return InstructorOpenRouterLlm(settings=self._settings, recorder=recorder)
 
     async def run_digest(self) -> DigestResult:
         async with self._factory() as session:
             seen = SeenVacancyRepository(session)
             scorer = ScoreVacancy(
-                llm=InstructorOpenRouterLlm(
-                    settings=self._settings, recorder=LlmCallRepository(session)
-                ),
+                llm=self._llm(session),
                 seen_repo=seen,
                 label_repo=LabelRepository(session),
                 system_prompt=self._system_prompt,
                 prompt_version=SCORING_PROMPT_VERSION,
-                model_name=self._settings.llm_model_scoring,
+                model_name=(
+                    "fake/scoring-stub"
+                    if self._settings.resolved_llm_mode() == "fake"
+                    else self._settings.llm_model_scoring
+                ),
                 fewshot_limit=self._settings.fewshot_limit,
                 fewshot_text_limit=self._settings.fewshot_text_limit,
             )

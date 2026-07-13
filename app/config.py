@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field, SecretStr, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -34,6 +36,10 @@ class Settings(BaseSettings):
     digest_score_threshold: int = Field(60, alias="DIGEST_SCORE_THRESHOLD")
     digest_max_items: int = Field(50, alias="DIGEST_MAX_ITEMS")
 
+    # --- режимы источников (спека 001: моки до кредов, свап на реальный API конфигом) ---
+    hh_mode: Literal["auto", "fake", "real"] = Field("auto", alias="HH_MODE")
+    llm_mode: Literal["auto", "fake", "real"] = Field("auto", alias="LLM_MODE")
+
     # --- HH (этап 1; опциональны — без них HH-функции не активируются) ---
     hh_client_id: str | None = Field(None, alias="HH_CLIENT_ID")
     hh_client_secret: SecretStr | None = Field(None, alias="HH_CLIENT_SECRET")
@@ -54,6 +60,18 @@ class Settings(BaseSettings):
     @property
     def hh_search_queries(self) -> list[str]:
         return [q.strip() for q in self.hh_search_queries_raw.split(";") if q.strip()]
+
+    def resolved_hh_mode(self) -> Literal["fake", "real"]:
+        """auto: real при наличии refresh token, иначе моки."""
+        if self.hh_mode != "auto":
+            return self.hh_mode
+        return "real" if self.hh_refresh_token else "fake"
+
+    def resolved_llm_mode(self) -> Literal["fake", "real"]:
+        """auto: real при наличии ключа OpenRouter, иначе стаб-скоринг."""
+        if self.llm_mode != "auto":
+            return self.llm_mode
+        return "real" if self.openrouter_api_key else "fake"
 
     # --- LLM (модели per-purpose — свап без кода, PLAN.md §2) ---
     llm_base_url: str = Field("https://openrouter.ai/api/v1", alias="LLM_BASE_URL")
