@@ -28,7 +28,7 @@
 
 ## Phase 4: US3 — реальный Gmail (P2, после кредов владельца)
 
-- [ ] T210 [US3] Golden `tests/golden/gmail/` (messages_list, message_full, token_refresh — реальные обезличенные) → contract-тесты → `adapters/gmail/{auth,client,source}.py` (401 → refresh → повтор 1 раз; scope readonly)
+- [x] T210 [US3] Golden `tests/golden/gmail/` (messages_list, message_full, token_refresh — реальные обезличенные) → contract-тесты → `adapters/gmail/{auth,client,source}.py` (401 → refresh → повтор 1 раз; scope readonly)
 - [x] T211 [US3] `app/cli/oauth_gmail.py` (installed-app flow, печать строк .env); respx-тест обмена; токены не логируются
 
 ## Phase 5: Eval и Polish

@@ -12,6 +12,7 @@ import structlog
 from aiogram import Bot
 
 from app.adapters.gmail.fake import FakeGmailInbox
+from app.adapters.gmail.source import GmailInbox
 from app.adapters.hh.fake import FakeHhVacancySource
 from app.adapters.llm.fake import FakeLlm, stub_mail_response, stub_scoring_response
 from app.adapters.llm.instructor_openrouter import InstructorOpenRouterLlm
@@ -157,9 +158,15 @@ class Services:
     def _inbox(self) -> InboxPort | None:
         if self._settings.resolved_gmail_mode() == "fake":
             return self._fake_gmail
-        # T210: реальный GmailInbox подключается после кредов Google
-        log.warning("gmail_source_disabled", reason="GMAIL_MODE=real, адаптер ждёт кредов (T210)")
-        return None
+        s = self._settings
+        if not (s.gmail_client_id and s.gmail_client_secret and s.gmail_refresh_token):
+            log.warning("gmail_source_disabled", reason="GMAIL_MODE=real, но креды неполные")
+            return None
+        return GmailInbox(
+            client_id=s.gmail_client_id,
+            client_secret=s.gmail_client_secret.get_secret_value(),
+            refresh_token=s.gmail_refresh_token.get_secret_value(),
+        )
 
     async def run_digest_as_job(self) -> None:
         """Плановый запуск: JobRun + root span + trace_id в логах."""
