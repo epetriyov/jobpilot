@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-08
 
-**Status**: Draft
+**Status**: Partially implemented — механика на моках влита в main 2026-07-13; реальный HH-адаптер (T104–T107, T115, T117) и eval (T119–T121) ждут кредов владельца; этап НЕ закрыт
 
 **Input**: User description: "Этап 1 PLAN.md §6: OAuth-флоу (CLI-хелпер → refresh token); поиск по EM-запросам + similar от откликов/избранного; дедуп по seen; скоринг Flash-Lite через instructor (few-shot «последние N» из labeled_vacancy); карточки в чат: кнопки 👍/👎/🔗 (💾 и ✉️ — этап 6); /train; publish каждые 4 часа; /digest, /publish; сообщения из negotiations HH — в дайджест. Eval: датасет relevance ≥30 размеченных (собрать в DRY_RUN); обязательное сравнение Flash-Lite vs Flash — если ΔF1 незначима, остаёмся на Lite. Без CRM-операций: только выгрузка релевантного в чат."
 
