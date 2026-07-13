@@ -10,21 +10,21 @@
 
 ## Phase 1: Foundational
 
-- [ ] T201 Конфиг: `GMAIL_MODE`, `GMAIL_*`-креды (SecretStr → санитайзер, [X-U1]), `MAIL_WHITELIST_DOMAINS`, `MAIL_BODY_LIMIT` (contracts/env.md); тест маскирования
-- [ ] T202 [F-I1] Миграция `0003_stage2`: inbox_message (data-model.md) + integration-тест идемпотентности и колонок
-- [ ] T203 [P] Домен correspondence (красные [M-U1] [M-U3] → реализация): `prefilter()` — whitelist/blacklist/linkedin-маршрутизация/hh-hidden; `InboxMessage` VO; `MailVerdict` схема с лимитом summary ([M-U2], M2)
+- [x] T201 Конфиг: `GMAIL_MODE`, `GMAIL_*`-креды (SecretStr → санитайзер, [X-U1]), `MAIL_WHITELIST_DOMAINS`, `MAIL_BODY_LIMIT` (contracts/env.md); тест маскирования
+- [x] T202 [F-I1] Миграция `0003_stage2`: inbox_message (data-model.md) + integration-тест идемпотентности и колонок
+- [x] T203 [P] Домен correspondence (красные [M-U1] [M-U3] → реализация): `prefilter()` — whitelist/blacklist/linkedin-маршрутизация/hh-hidden; `InboxMessage` VO; `MailVerdict` схема с лимитом summary ([M-U2], M2)
 
 ## Phase 2: US1 — секция «Почта» (P1) 🎯 MVP
 
-- [ ] T204 [US1] Мок-корпус: `adapters/gmail/fake.py` (FakeGmailInbox, ~15 писем всех веток: работодатель, интервью, рассылка, linkedin, hh-уведомление; новые письма на fetch) + стаб-классификатор в `adapters/llm/fake.py`; тесты детерминизма
-- [ ] T205 [US1] [M-U2] Красный тест → промпт `mail_classify_v1.md` + use case `classify_inbox.py`: префильтр → LLM (data-блок, R5) → InboxMessage; невалидный выход → 1 retry → unclassified-фолбэк (письмо не теряется); llm_call (O1)
-- [ ] T206 [US1] [M-C1] Красный тест: обработаны только письма за 24ч; повторный прогон не дублирует (gmail_id-дедуп) → `InboxMessageRepository`
-- [ ] T207 [US1] [M-C2] Красный тест: тело письма отсутствует в логах тестового прогона (M4) — прогон classify_inbox с логгером в тестовом режиме
-- [ ] T208 [US1] Секция «Почта» в дайджесте: расширение `build_inbox_digest.py` + рендер в боте; пустая секция скрыта; сбой сбора почты → digest partial, вакансии не страдают (S4-паттерн)
+- [x] T204 [US1] Мок-корпус: `adapters/gmail/fake.py` (FakeGmailInbox, ~15 писем всех веток: работодатель, интервью, рассылка, linkedin, hh-уведомление; новые письма на fetch) + стаб-классификатор в `adapters/llm/fake.py`; тесты детерминизма
+- [x] T205 [US1] [M-U2] Красный тест → промпт `mail_classify_v1.md` + use case `classify_inbox.py`: префильтр → LLM (data-блок, R5) → InboxMessage; невалидный выход → 1 retry → unclassified-фолбэк (письмо не теряется); llm_call (O1)
+- [x] T206 [US1] [M-C1] Красный тест: обработаны только письма за 24ч; повторный прогон не дублирует (gmail_id-дедуп) → `InboxMessageRepository`
+- [x] T207 [US1] [M-C2] Красный тест: тело письма отсутствует в логах тестового прогона (M4) — прогон classify_inbox с логгером в тестовом режиме
+- [~] T208 (рендер и wiring готовы; e2e-прогон в Telegram — владелец) [US1] Секция «Почта» в дайджесте: расширение `build_inbox_digest.py` + рендер в боте; пустая секция скрыта; сбой сбора почты → digest partial, вакансии не страдают (S4-паттерн)
 
 ## Phase 3: US2 — секция «LinkedIn» (P2)
 
-- [ ] T209 [US2] [M-U3] Красный тест: «X wants to connect» → source=linkedin_gmail, секция «LinkedIn», не «Почта»; рендер секции
+- [x] T209 [US2] [M-U3] Красный тест: «X wants to connect» → source=linkedin_gmail, секция «LinkedIn», не «Почта»; рендер секции
 
 ## Phase 4: US3 — реальный Gmail (P2, после кредов владельца)
 

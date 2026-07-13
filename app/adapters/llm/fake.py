@@ -140,6 +140,36 @@ def stub_scoring_response(data: str) -> str:
     return json.dumps({"score": score, "reason": reason}, ensure_ascii=False)
 
 
+_JOB_MAIL_MARKERS = (
+    "интервью",
+    "собеседован",
+    "ваканси",
+    "оффер",
+    "offer",
+    "позици",
+    "рекрутер",
+    "resume",
+    "резюме",
+)
+
+
+def stub_mail_response(data: str) -> str:
+    """Детерминированный мок-классификатор писем (GMAIL_MODE/LLM_MODE=fake, этап 2)."""
+    lowered = data.lower()
+    if any(marker in lowered for marker in _JOB_MAIL_MARKERS):
+        subject = next(
+            (
+                line[len("Subject: ") :]
+                for line in data.splitlines()
+                if line.startswith("Subject: ")
+            ),
+            "рабочее письмо",
+        )
+        summary = f"Мок-summary: {subject[:150]} — требуется ответ."
+        return json.dumps({"is_job": True, "summary": summary}, ensure_ascii=False)
+    return json.dumps({"is_job": False, "summary": "Не про работу."}, ensure_ascii=False)
+
+
 def _build_messages(
     system: str, data: str, few_shot: Sequence[tuple[str, str]]
 ) -> list[dict[str, str]]:

@@ -13,7 +13,14 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.adapters.persistence.models import JobRun, LabeledVacancy, LlmCall, SeenVacancy
+from app.adapters.persistence.models import (
+    InboxMessageRow,
+    JobRun,
+    LabeledVacancy,
+    LlmCall,
+    SeenVacancy,
+)
+from app.domain.correspondence import InboxMessage as InboxMessageDTO
 from app.domain.relevance import Score, VacancySnapshot
 from app.domain.shared import Source, SourceRef
 from app.domain.sourcing import Vacancy, content_hash
@@ -271,3 +278,55 @@ class JobRunRepository:
                 finished_at=datetime.now(UTC),
             )
         )
+
+
+class InboxMessageRepository:
+    """Реализация InboxMessageRepositoryPort + выборка секций (этап 2)."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def is_processed(self, gmail_id: str) -> bool:
+        result = await self._session.execute(
+            select(InboxMessageRow.id).where(InboxMessageRow.gmail_id == gmail_id)
+        )
+        return result.first() is not None
+
+    async def add(self, gmail_id: str, message: InboxMessageDTO) -> None:
+        stmt = (
+            insert(InboxMessageRow)
+            .values(
+                gmail_id=gmail_id,
+                source=message.source,
+                sender=message.sender,
+                subject=message.subject,
+                summary=message.summary,
+                url=message.url,
+                section=message.section,
+                received_at=message.received_at,
+            )
+            .on_conflict_do_nothing(index_elements=["gmail_id"])
+        )
+        await self._session.execute(stmt)
+
+    async def sections_since(self, since: datetime) -> dict[str, list[InboxMessageDTO]]:
+        result = await self._session.execute(
+            select(InboxMessageRow)
+            .where(InboxMessageRow.received_at >= since)
+            .where(InboxMessageRow.section.in_(["mail", "linkedin"]))
+            .order_by(InboxMessageRow.received_at.desc())
+        )
+        sections: dict[str, list[InboxMessageDTO]] = {"mail": [], "linkedin": []}
+        for row in result.scalars():
+            sections[row.section].append(
+                InboxMessageDTO(
+                    source=row.source,
+                    sender=row.sender,
+                    subject=row.subject,
+                    summary=row.summary,
+                    url=row.url,
+                    received_at=row.received_at,
+                    section=row.section,
+                )
+            )
+        return sections
