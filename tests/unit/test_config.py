@@ -42,6 +42,31 @@ def test_missing_required_var_names_it(missing: str, monkeypatch: pytest.MonkeyP
     assert missing in str(exc_info.value)
 
 
+def test_hh_settings_optional_and_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Этап 1: HH-переменные опциональны (сервис стартует без них);
+    заданные HH-секреты попадают в secret_values() → санитайзер логов ([X-U1])."""
+    _clear_env(monkeypatch)
+    for name, value in REQUIRED.items():
+        monkeypatch.setenv(name, value)
+    for name in ("HH_CLIENT_ID", "HH_CLIENT_SECRET", "HH_REFRESH_TOKEN", "HH_RESUME_ID"):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = Settings.load(env_file=None)
+    assert settings.hh_client_id is None  # без HH-кредов старт не блокируется
+
+    monkeypatch.setenv("HH_CLIENT_ID", "app-id-1")
+    monkeypatch.setenv("HH_CLIENT_SECRET", "hh-secret-value")
+    monkeypatch.setenv("HH_REFRESH_TOKEN", "hh-refresh-value")
+    monkeypatch.setenv("HH_RESUME_ID", "resume-42")
+    settings = Settings.load(env_file=None)
+
+    assert settings.hh_client_id == "app-id-1"
+    assert settings.hh_search_queries[0] == "Engineering Manager"
+    secrets = settings.secret_values()
+    assert "hh-secret-value" in secrets
+    assert "hh-refresh-value" in secrets
+
+
 def test_grafana_cloud_is_optional(monkeypatch: pytest.MonkeyPatch) -> None:
     """Телеметрия в облако опциональна: без кредов сервис стартует (contracts/env.md)."""
     _clear_env(monkeypatch)

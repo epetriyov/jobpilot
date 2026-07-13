@@ -37,6 +37,20 @@ class SeenVacancy(Base):
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     digest_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # этап 1 (0002_stage1): снапшот для карточек/разметки + скор для R1
+    title: Mapped[str | None] = mapped_column(Text)
+    company: Mapped[str | None] = mapped_column(Text)
+    url: Mapped[str | None] = mapped_column(Text)
+    description_text: Mapped[str | None] = mapped_column(Text)
+    salary_from: Mapped[int | None] = mapped_column(Integer)
+    salary_to: Mapped[int | None] = mapped_column(Integer)
+    salary_currency: Mapped[str | None] = mapped_column(Text)
+    score: Mapped[int | None] = mapped_column(Integer)
+    score_reason: Mapped[str | None] = mapped_column(Text)
+    prompt_version: Mapped[str | None] = mapped_column(Text)
+    score_model: Mapped[str | None] = mapped_column(Text)
+    scored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
 
 class LabeledVacancy(Base):
     """Снапшоты размеченных 👍/👎 — топливо few-shot и eval."""

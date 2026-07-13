@@ -38,6 +38,7 @@
 | `PRICE_PER_MTOK_IN` / `PRICE_PER_MTOK_OUT` | `0.10` / `0.40` | фолбэк-прайс $/1M токенов |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://alloy:4317` | локальный коллектор |
 | `TZ_SCHEDULER` | `Europe/Moscow` | зона планировщика (БД — UTC) |
+| `DEPLOY_ENV` | `dev` | среда в телеметрии (`deployment.environment`); на VPS ставится `prod` — алерты фильтруют только prod. Локально держится тестовый бот-токен и DRY_RUN=true (см. README «Локальная разработка при работающем VPS») |
 | `DIGEST_SCORE_THRESHOLD` | `60` | порог дайджеста (R4) |
 | `DIGEST_MAX_ITEMS` | `50` | максимум карточек (R4) |
 

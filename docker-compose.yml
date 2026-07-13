@@ -46,12 +46,14 @@ services:
     build: .
     command: python -m app.bot
     env_file: .env
+    volumes:
+      - ./eval/datasets:/app/eval/datasets
     environment:
       POSTGRES_DSN: postgresql+psycopg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot}@db:5432/${POSTGRES_DB:-jobpilot}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_SERVICE_NAME: jobpilot-bot
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=prod,service.version=${GIT_SHA:-dev}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${DEPLOY_ENV:-dev},service.version=${GIT_SHA:-dev}
     depends_on:
       db:
         condition: service_healthy
@@ -63,12 +65,14 @@ services:
     build: .
     command: python -m app.worker
     env_file: .env
+    volumes:
+      - ./eval/datasets:/app/eval/datasets
     environment:
       POSTGRES_DSN: postgresql+psycopg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot}@db:5432/${POSTGRES_DB:-jobpilot}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_SERVICE_NAME: jobpilot-worker
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=prod,service.version=${GIT_SHA:-dev}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${DEPLOY_ENV:-dev},service.version=${GIT_SHA:-dev}
     depends_on:
       db:
         condition: service_healthy

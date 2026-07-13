@@ -119,7 +119,7 @@ rejected: stage обязателен; из new/applied stage ∈ {pre_hr, hr}; �
 
 ## 4. Модель данных (Postgres)
 
-**Этапы 0–5 (минимальный слой):** `seen_vacancy(source_ref unique, content_hash, first_seen_at, digest_sent_at)` — дедуп и защита от повторов; `labeled_vacancy(id, source_ref, title, company, url, description_text, verdict, embedding vector(768), created_at)` — снапшоты размеченных для few-shot и eval; `inbox_message`; `linkedin_target`; `job_run`; `llm_call`.
+**Этапы 0–5 (минимальный слой):** `seen_vacancy(source_ref unique, content_hash, first_seen_at, digest_sent_at)` — дедуп и защита от повторов; с этапа 1 дополнена рабочими полями этапа (уточнение 2026-07-08, specs/001-hh-digest/data-model.md): снапшот `title/company/url/description_text/salary_*` (карточки и разметка без повторного похода в источник) и скор `score/score_reason/prompt_version/score_model/scored_at` (инвариант R1 — не скорить повторно той же версией промпта); это НЕ полное `vacancy` этапа 6 — только рабочие поля реестра виденных; `labeled_vacancy(id, source_ref, title, company, url, description_text, verdict, embedding vector(768), created_at)` — снапшоты размеченных для few-shot и eval; `inbox_message`; `linkedin_target`; `job_run`; `llm_call`.
 **Этап 6 (финальная фича):** полное `vacancy` (поля агрегата §3.1 + `raw jsonb`, `duplicate_of`, `canary bool`; миграция: seen/labeled переезжают поверх), `application` (+child `interview_round`), `cover_letter`. Время в БД — UTC. Миграции — Alembic, по одной на этап.
 
 ## 5. Как расширять домен (для будущих агентов)

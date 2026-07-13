@@ -5,9 +5,9 @@ import io
 import pytest
 import structlog
 
+from app.application.job_runner import JobFailed, run_job
 from app.obs.logging import configure_logging
 from app.obs.tracing import setup_tracing
-from app.worker.job_runner import JobFailed, run_job
 
 
 class InMemoryJobRunRepo:

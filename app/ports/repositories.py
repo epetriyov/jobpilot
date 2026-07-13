@@ -8,21 +8,47 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domain.relevance import LabeledVacancy, Score, VacancySnapshot
 from app.domain.shared import SourceRef
 from app.domain.sourcing import Vacancy
 
+__all__ = [
+    "DigestRepositoryPort",
+    "JobRunRepositoryPort",
+    "LabelRepositoryPort",
+    "LabeledVacancy",
+    "ScoredCandidate",
+    "ScoringRepositoryPort",
+    "SeenVacancyRepositoryPort",
+]
 
-class LabeledVacancy(BaseModel):
-    """Снапшот размеченной вакансии — топливо few-shot и eval (DOMAIN.md §4)."""
+
+class ScoredCandidate(BaseModel):
+    """Кандидат дайджеста: снапшот + скор + отображаемая вилка."""
 
     model_config = ConfigDict(frozen=True)
 
-    source_ref: SourceRef
-    title: str
-    company: str
-    url: str
-    description_text: str
-    verdict: Literal["relevant", "irrelevant"]
+    snapshot: VacancySnapshot
+    score: Score
+    salary_text: str | None = None
+
+
+class ScoringRepositoryPort(Protocol):
+    """Рабочие операции скоринга поверх реестра seen (data-model этапа 1, R1)."""
+
+    async def unscored(self, prompt_version: str, limit: int = 200) -> list[VacancySnapshot]:
+        """Виденные без актуального скора текущей prompt_version (R1)."""
+        ...
+
+    async def save_score(self, ref: SourceRef, score: Score) -> None: ...
+
+    async def unsent_scored(self) -> list[ScoredCandidate]:
+        """Скоренные, ещё не уходившие в дайджест (digest_sent_at IS NULL)."""
+        ...
+
+    async def snapshot(self, ref: SourceRef) -> VacancySnapshot | None:
+        """Снапшот виденной вакансии — разметка без похода в источник (этап 1)."""
+        ...
 
 
 class SeenVacancyRepositoryPort(Protocol):
@@ -39,12 +65,28 @@ class SeenVacancyRepositoryPort(Protocol):
     async def mark_digest_sent(self, refs: Sequence[SourceRef], at: datetime) -> None: ...
 
 
+class DigestRepositoryPort(SeenVacancyRepositoryPort, ScoringRepositoryPort, Protocol):
+    """Совмещённый порт для RunDailyDigest (реализуется одним репозиторием seen)."""
+
+
 class LabelRepositoryPort(Protocol):
-    async def add(self, labeled: LabeledVacancy) -> None: ...
+    async def upsert(self, labeled: LabeledVacancy) -> None:
+        """Вердикт по source_ref: повторная разметка обновляет, не дублирует."""
+        ...
 
     async def recent(self, limit: int = 10) -> list[LabeledVacancy]:
         """Few-shot «последние N» (R3)."""
         ...
+
+    async def counts(self) -> tuple[int, int]:
+        """(relevant, irrelevant) — прогресс разметки для /train."""
+        ...
+
+
+class DatasetAppenderPort(Protocol):
+    """Append-only строка eval-датасета (Приложение TEST_CASES.md)."""
+
+    def append(self, example: dict) -> None: ...  # type: ignore[type-arg]
 
 
 class JobRunRepositoryPort(Protocol):

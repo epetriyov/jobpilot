@@ -17,6 +17,9 @@ RUN uv sync --no-dev --no-install-project
 # Код
 COPY app ./app
 COPY alembic.ini ./
+# профиль кандидата для промпта скоринга и каркас eval-датасетов (этап 1)
+COPY resumes ./resumes
+COPY eval ./eval
 RUN uv sync --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH"

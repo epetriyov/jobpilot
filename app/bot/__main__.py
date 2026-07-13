@@ -12,6 +12,7 @@ from app.bot.middleware import OwnerOnlyMiddleware
 from app.config import Settings
 from app.obs.logging import configure_logging
 from app.obs.telemetry import setup_telemetry
+from app.runtime.composition import Services
 
 log = structlog.get_logger("bot")
 
@@ -26,8 +27,10 @@ async def main() -> None:
 
     bot = Bot(token=settings.telegram_api_token.get_secret_value())
     dp = Dispatcher()
+    dp["services"] = Services(settings, bot)
     owner_only = OwnerOnlyMiddleware(owner_chat_id=settings.owner_chat_id)
     dp.message.middleware(owner_only)
+    dp.callback_query.middleware(owner_only)  # кнопки 👍/👎 — тоже только владелец
     dp.include_router(router)
 
     log.info("bot_starting", dry_run=settings.dry_run)
