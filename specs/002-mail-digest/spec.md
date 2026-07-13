@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-13
 
-**Status**: Draft
+**Status**: Partially implemented — механика влита в main 2026-07-13 (моки + реальный Gmail); eval mail_classify (T212) и сверка summary (T214) ждут реального LLM; этап НЕ закрыт
 
 **Input**: User description: "Этап 2 PLAN.md §6: Gmail API (gmail.readonly, refresh token): письма за 24ч → эвристический префильтр (домены hh.ru/getmatch/habr/linkedin.com, ключевые слова) → LLM: классификация «про работу?» + summary ≤2 строк → секция «Почта» в дайджесте; уведомления LinkedIn (инвайты/сообщения) — отдельная секция. Eval: mail_classify ≥40 писем — accuracy ≥0.9, ноль пропусков писем с офферами/интервью. Тела писем не логируются. По решению владельца: механика сначала на моках (GMAIL_MODE=fake), реальный Gmail — после кредов."
 
