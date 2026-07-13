@@ -111,3 +111,28 @@ class JobRun(Base):
     trace_id: Mapped[str] = mapped_column(Text, nullable=False)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class InboxMessageRow(Base):
+    """Входящее письмо (этап 2): метаданные + summary; тело письма не хранится (M4)."""
+
+    __tablename__ = "inbox_message"
+    __table_args__ = (
+        CheckConstraint("source IN ('gmail','linkedin_gmail','hh')", name="ck_inbox_source"),
+        CheckConstraint("section IN ('mail','linkedin','hidden')", name="ck_inbox_section"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    gmail_id: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    sender: Mapped[str] = mapped_column(Text, nullable=False)
+    subject: Mapped[str] = mapped_column(Text, nullable=False)
+    summary: Mapped[str | None] = mapped_column(Text)
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    section: Mapped[str] = mapped_column(Text, nullable=False)
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    processed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )

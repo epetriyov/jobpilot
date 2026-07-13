@@ -27,6 +27,9 @@ digest_sent_total = _meter.create_counter(
 publish_skipped_total = _meter.create_counter(
     "publish_skipped_total", description="Поднятия резюме, пропущенные по лимиту HH", unit="1"
 )
+inbox_messages_total = _meter.create_counter(
+    "inbox_messages_total", description="Обработанные письма по секциям (этап 2)", unit="1"
+)
 
 
 def record_llm_metrics(

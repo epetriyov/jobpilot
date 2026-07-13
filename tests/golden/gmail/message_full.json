@@ -1,0 +1,73 @@
+{
+  "id": "198000000000b",
+  "threadId": "198000000000c",
+  "labelIds": [
+    "UNREAD",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "snippet": "Приглашаем вас на интервью на позицию Engineering Manager…",
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "owner@example.com"
+      },
+      {
+        "name": "Return-Path",
+        "value": "<anna.recruiter@example-corp.io>"
+      },
+      {
+        "name": "Date",
+        "value": "Mon, 13 Jul 2026 15:56:07 +0000 (UTC)"
+      },
+      {
+        "name": "From",
+        "value": "Anna Recruiter <anna.recruiter@example-corp.io>"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<golden-message-id@example-corp.io>"
+      },
+      {
+        "name": "Subject",
+        "value": "Приглашение на интервью — Engineering Manager"
+      },
+      {
+        "name": "To",
+        "value": "Owner <owner@example.com>"
+      }
+    ],
+    "body": {
+      "size": 0
+    },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "filename": "",
+        "headers": [],
+        "body": {
+          "size": 6676,
+          "data": "0JfQtNGA0LDQstGB0YLQstGD0LnRgtC1ISDQrdGC0L4g0L7QsdC10LfQu9C40YfQtdC90L3QvtC1INGC0LXQu9C-INC_0LjRgdGM0LzQsCDQtNC70Y8gZ29sZGVuLdGC0LXRgdGC0LAgam9icGlsb3QuINCf0YDQuNCz0LvQsNGI0LDQtdC8INCy0LDRgSDQvdCwINC40L3RgtC10YDQstGM0Y4g0L3QsCDQv9C-0LfQuNGG0LjRjiBFbmdpbmVlcmluZyBNYW5hZ2VyINCy0L4g0LLRgtC-0YDQvdC40Log0LIgMTU6MDAu"
+        }
+      },
+      {
+        "partId": "1",
+        "mimeType": "text/html",
+        "filename": "",
+        "headers": [],
+        "body": {
+          "size": 26111,
+          "data": "0JfQtNGA0LDQstGB0YLQstGD0LnRgtC1ISDQrdGC0L4g0L7QsdC10LfQu9C40YfQtdC90L3QvtC1INGC0LXQu9C-INC_0LjRgdGM0LzQsCDQtNC70Y8gZ29sZGVuLdGC0LXRgdGC0LAgam9icGlsb3QuINCf0YDQuNCz0LvQsNGI0LDQtdC8INCy0LDRgSDQvdCwINC40L3RgtC10YDQstGM0Y4g0L3QsCDQv9C-0LfQuNGG0LjRjiBFbmdpbmVlcmluZyBNYW5hZ2VyINCy0L4g0LLRgtC-0YDQvdC40Log0LIgMTU6MDAu"
+        }
+      }
+    ]
+  },
+  "sizeEstimate": 40826,
+  "historyId": "198000000000d",
+  "internalDate": "1783958167000"
+}

@@ -11,19 +11,24 @@ from pathlib import Path
 import structlog
 from aiogram import Bot
 
+from app.adapters.gmail.fake import FakeGmailInbox
+from app.adapters.gmail.source import GmailInbox
 from app.adapters.hh.fake import FakeHhVacancySource
-from app.adapters.llm.fake import FakeLlm, stub_scoring_response
+from app.adapters.llm.fake import FakeLlm, stub_mail_response, stub_scoring_response
 from app.adapters.llm.instructor_openrouter import InstructorOpenRouterLlm
 from app.adapters.llm.prompts import load_system_prompt
 from app.adapters.persistence.database import make_engine, make_session_factory
 from app.adapters.persistence.dataset import JsonlDatasetAppender
 from app.adapters.persistence.repositories import (
+    InboxMessageRepository,
     JobRunRepository,
     LabelRepository,
     LlmCallRepository,
     SeenVacancyRepository,
 )
 from app.adapters.telegram.notifier import NullPublisher, TelegramNotifier
+from app.application.build_inbox_digest import BuildInboxDigest
+from app.application.classify_inbox import ClassifyInbox
 from app.application.job_runner import run_job
 from app.application.label_vacancy import LabelVacancy
 from app.application.publish_resume import PublishResult, PublishResume
@@ -32,11 +37,13 @@ from app.application.score_vacancy import ScoreVacancy
 from app.config import Settings
 from app.domain.relevance import LabeledVacancy, Verdict
 from app.domain.shared import PromptVersion
+from app.ports.inbox import InboxPort
 from app.ports.sources import VacancySourcePort
 
 log = structlog.get_logger("runtime.composition")
 
 SCORING_PROMPT_VERSION = PromptVersion(purpose="scoring", version=1)
+MAIL_PROMPT_VERSION = PromptVersion(purpose="mail_classify", version=1)
 RELEVANCE_DATASET = Path("eval/datasets/relevance/v1.jsonl")
 PROFILE_PATH = Path("resumes/resume_em.md")
 PROFILE_LIMIT = 4000
@@ -60,11 +67,13 @@ class Services:
         self._engine = make_engine(settings.postgres_dsn.get_secret_value())
         self._factory = make_session_factory(self._engine)
         self._system_prompt = _system_prompt()
-        # один инстанс на процесс: счётчик fetch'ей даёт «новые» вакансии на повторный /digest
+        # один инстанс на процесс: счётчики fetch'ей дают «новые» элементы на повторный /digest
         self._fake_hh = FakeHhVacancySource()
+        self._fake_gmail = FakeGmailInbox()
         log.info(
             "services_ready",
             hh_mode=settings.resolved_hh_mode(),
+            gmail_mode=settings.resolved_gmail_mode(),
             llm_mode=settings.resolved_llm_mode(),
             dry_run=settings.dry_run,
         )
@@ -78,15 +87,12 @@ class Services:
         # T107: HhVacancySource подключается после записи golden-файлов
         return []
 
-    def _llm(self, session: object):  # type: ignore[no-untyped-def]
+    def _llm(self, session: object, *, kind: str = "scoring"):  # type: ignore[no-untyped-def]
         recorder = LlmCallRepository(session)  # type: ignore[arg-type]
         if self._settings.resolved_llm_mode() == "fake":
-            # стаб-скоринг: детерминированные скоры, честный llm_call (O1)
-            return FakeLlm(
-                recorder=recorder,
-                model="fake/scoring-stub",
-                response_factory=stub_scoring_response,
-            )
+            # детерминированные стабы per-purpose, честный llm_call (O1)
+            factory = stub_scoring_response if kind == "scoring" else stub_mail_response
+            return FakeLlm(recorder=recorder, model=f"fake/{kind}-stub", response_factory=factory)
         return InstructorOpenRouterLlm(settings=self._settings, recorder=recorder)
 
     async def run_digest(self) -> DigestResult:
@@ -116,8 +122,51 @@ class Services:
                 max_items=self._settings.digest_max_items,
             )
             result = await digest.run()
+
+            # Секции «Почта»/«LinkedIn» (этап 2): сбой изолируется — вакансии уже ушли
+            try:
+                await self._run_inbox_sections(session)
+            except Exception as exc:
+                log.warning("inbox_sections_failed", error=str(exc))
+                result.partial = True
+
             await session.commit()
             return result
+
+    async def _run_inbox_sections(self, session: object) -> None:
+        from datetime import UTC, datetime, timedelta
+
+        inbox = self._inbox()
+        if inbox is None:
+            return
+        classify = ClassifyInbox(
+            inbox=inbox,
+            repo=InboxMessageRepository(session),  # type: ignore[arg-type]
+            llm=self._llm(session, kind="mail_classify"),
+            system_prompt=load_system_prompt("mail_classify", MAIL_PROMPT_VERSION.version),
+            prompt_version=MAIL_PROMPT_VERSION,
+            body_limit=self._settings.mail_body_limit,
+            extra_whitelist=self._settings.mail_whitelist_domains,
+        )
+        use_case = BuildInboxDigest(
+            classify=classify,
+            sections_repo=InboxMessageRepository(session),  # type: ignore[arg-type]
+            notifier=TelegramNotifier(self._bot, self._settings.owner_chat_id),
+        )
+        await use_case.run(since=datetime.now(UTC) - timedelta(hours=24))
+
+    def _inbox(self) -> InboxPort | None:
+        if self._settings.resolved_gmail_mode() == "fake":
+            return self._fake_gmail
+        s = self._settings
+        if not (s.gmail_client_id and s.gmail_client_secret and s.gmail_refresh_token):
+            log.warning("gmail_source_disabled", reason="GMAIL_MODE=real, но креды неполные")
+            return None
+        return GmailInbox(
+            client_id=s.gmail_client_id,
+            client_secret=s.gmail_client_secret.get_secret_value(),
+            refresh_token=s.gmail_refresh_token.get_secret_value(),
+        )
 
     async def run_digest_as_job(self) -> None:
         """Плановый запуск: JobRun + root span + trace_id в логах."""

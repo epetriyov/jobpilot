@@ -67,6 +67,29 @@ def test_hh_settings_optional_and_secret(monkeypatch: pytest.MonkeyPatch) -> Non
     assert "hh-refresh-value" in secrets
 
 
+def test_gmail_settings_optional_and_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Этап 2 [X-U1]: Gmail-переменные опциональны; секреты — в санитайзер; режим auto→fake."""
+    _clear_env(monkeypatch)
+    for name, value in REQUIRED.items():
+        monkeypatch.setenv(name, value)
+    for name in ("GMAIL_MODE", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = Settings.load(env_file=None)
+    assert settings.resolved_gmail_mode() == "fake"  # без кредов — мок-корпус
+
+    monkeypatch.setenv("GMAIL_CLIENT_SECRET", "gmail-secret-value")
+    monkeypatch.setenv("GMAIL_REFRESH_TOKEN", "gmail-refresh-value")
+    monkeypatch.setenv("MAIL_WHITELIST_DOMAINS", "corp.example.com;jobs.example.org")
+    settings = Settings.load(env_file=None)
+
+    assert settings.resolved_gmail_mode() == "real"
+    assert settings.mail_whitelist_domains == ("corp.example.com", "jobs.example.org")
+    secrets = settings.secret_values()
+    assert "gmail-secret-value" in secrets
+    assert "gmail-refresh-value" in secrets
+
+
 def test_grafana_cloud_is_optional(monkeypatch: pytest.MonkeyPatch) -> None:
     """Телеметрия в облако опциональна: без кредов сервис стартует (contracts/env.md)."""
     _clear_env(monkeypatch)

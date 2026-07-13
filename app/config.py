@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     hh_mode: Literal["auto", "fake", "real"] = Field("auto", alias="HH_MODE")
     llm_mode: Literal["auto", "fake", "real"] = Field("auto", alias="LLM_MODE")
 
+    # --- Gmail (этап 2; моки до кредов — GMAIL_MODE) ---
+    gmail_mode: Literal["auto", "fake", "real"] = Field("auto", alias="GMAIL_MODE")
+    gmail_client_id: str | None = Field(None, alias="GMAIL_CLIENT_ID")
+    gmail_client_secret: SecretStr | None = Field(None, alias="GMAIL_CLIENT_SECRET")
+    gmail_refresh_token: SecretStr | None = Field(None, alias="GMAIL_REFRESH_TOKEN")
+    mail_whitelist_domains_raw: str = Field("", alias="MAIL_WHITELIST_DOMAINS")
+    mail_body_limit: int = Field(2000, alias="MAIL_BODY_LIMIT")
+
     # --- HH (этап 1; опциональны — без них HH-функции не активируются) ---
     hh_client_id: str | None = Field(None, alias="HH_CLIENT_ID")
     hh_client_secret: SecretStr | None = Field(None, alias="HH_CLIENT_SECRET")
@@ -72,6 +80,16 @@ class Settings(BaseSettings):
         if self.llm_mode != "auto":
             return self.llm_mode
         return "real" if self.openrouter_api_key else "fake"
+
+    def resolved_gmail_mode(self) -> Literal["fake", "real"]:
+        """auto: real при наличии refresh token Gmail, иначе мок-корпус."""
+        if self.gmail_mode != "auto":
+            return self.gmail_mode
+        return "real" if self.gmail_refresh_token else "fake"
+
+    @property
+    def mail_whitelist_domains(self) -> tuple[str, ...]:
+        return tuple(d.strip() for d in self.mail_whitelist_domains_raw.split(";") if d.strip())
 
     # --- LLM (модели per-purpose — свап без кода, PLAN.md §2) ---
     llm_base_url: str = Field("https://openrouter.ai/api/v1", alias="LLM_BASE_URL")
@@ -109,5 +127,7 @@ class Settings(BaseSettings):
             self.grafana_cloud_api_token,
             self.hh_client_secret,
             self.hh_refresh_token,
+            self.gmail_client_secret,
+            self.gmail_refresh_token,
         ]
         return [s.get_secret_value() for s in secrets if s is not None]
