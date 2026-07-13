@@ -11,23 +11,11 @@ from __future__ import annotations
 
 import asyncio
 import os
-import sys
 
 import httpx
 
 from app.adapters.hh.auth import API_BASE, build_authorize_url, exchange_code
-
-
-def _ask(prompt: str, env_var: str) -> str:
-    value = os.environ.get(env_var, "").strip()
-    if value:
-        print(f"{env_var}: взят из окружения")
-        return value
-    value = input(f"{prompt}: ").strip()
-    if not value:
-        print("Пустое значение — выходим.", file=sys.stderr)
-        raise SystemExit(1)
-    return value
+from app.cli._env import ask
 
 
 async def _list_resumes(access_token: str, user_agent: str) -> list[tuple[str, str]]:
@@ -41,8 +29,8 @@ async def _list_resumes(access_token: str, user_agent: str) -> list[tuple[str, s
 
 async def main() -> None:
     print("=== JobPilot: настройка доступа к HH (один раз) ===\n")
-    client_id = _ask("HH_CLIENT_ID (из dev.hh.ru)", "HH_CLIENT_ID")
-    client_secret = _ask("HH_CLIENT_SECRET", "HH_CLIENT_SECRET")
+    client_id = ask("HH_CLIENT_ID (из dev.hh.ru)", "HH_CLIENT_ID")
+    client_secret = ask("HH_CLIENT_SECRET", "HH_CLIENT_SECRET")
     user_agent = os.environ.get("HH_USER_AGENT", "JobPilot/0.1 (jobpilot-owner)")
 
     print("\n1) Откройте в браузере и подтвердите доступ:")

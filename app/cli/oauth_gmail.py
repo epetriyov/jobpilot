@@ -13,26 +13,13 @@ Desktop-клиентов), открывает авторизацию в брау
 from __future__ import annotations
 
 import asyncio
-import os
-import sys
 from urllib.parse import parse_qs, urlparse
 
 from app.adapters.gmail.auth import build_authorize_url, exchange_code
+from app.cli._env import ask
 
 REDIRECT_PORT = 8765
 REDIRECT_URI = f"http://127.0.0.1:{REDIRECT_PORT}/"
-
-
-def _ask(prompt: str, env_var: str) -> str:
-    value = os.environ.get(env_var, "").strip()
-    if value:
-        print(f"{env_var}: взят из окружения")
-        return value
-    value = input(f"{prompt}: ").strip()
-    if not value:
-        print("Пустое значение — выходим.", file=sys.stderr)
-        raise SystemExit(1)
-    return value
 
 
 async def _wait_for_code() -> str:
@@ -59,8 +46,8 @@ async def _wait_for_code() -> str:
 
 async def main() -> None:
     print("=== JobPilot: настройка доступа к Gmail (scope: только чтение) ===\n")
-    client_id = _ask("GMAIL_CLIENT_ID", "GMAIL_CLIENT_ID")
-    client_secret = _ask("GMAIL_CLIENT_SECRET", "GMAIL_CLIENT_SECRET")
+    client_id = ask("GMAIL_CLIENT_ID", "GMAIL_CLIENT_ID")
+    client_secret = ask("GMAIL_CLIENT_SECRET", "GMAIL_CLIENT_SECRET")
 
     url = build_authorize_url(client_id=client_id, redirect_uri=REDIRECT_URI)
     print("\n1) Откройте в браузере (аккаунт из Test users!):")
