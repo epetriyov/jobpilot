@@ -81,10 +81,9 @@ class Services:
     def _sources(self) -> list[VacancySourcePort]:
         if self._settings.resolved_hh_mode() == "fake":
             return [self._fake_hh]
-        if not self._settings.hh_refresh_token:
-            log.warning("hh_source_disabled", reason="HH_MODE=real, но нет HH-кредов")
-            return []
-        # T107: HhVacancySource подключается после записи golden-файлов
+        # Реальные адаптеры (пересмотр 2026-07-15): hh_telegram_source (userbot) и
+        # hh_web_source (Playwright) подключаются после записи golden — TDD в работе.
+        log.warning("hh_real_sources_pending", sources=self._settings.hh_sources)
         return []
 
     def _llm(self, session: object, *, kind: str = "scoring"):  # type: ignore[no-untyped-def]

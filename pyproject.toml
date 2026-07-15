@@ -18,6 +18,8 @@ dependencies = [
     "structlog>=24.4",
     "opentelemetry-sdk>=1.27",
     "opentelemetry-exporter-otlp-proto-grpc>=1.27",
+    "telethon>=1.36",       # userbot HH-бота (пересмотр 2026-07-15; общий с GetMatch этапа 4)
+    "playwright>=1.47",     # web-скрейпер рекомендаций HH + поднятие резюме
 ]
 
 [dependency-groups]
@@ -100,6 +102,8 @@ forbidden_modules = [
     "apscheduler",
     "structlog",
     "opentelemetry",
+    "telethon",
+    "playwright",
     "app.config",
     "app.obs",
     "app.runtime",
@@ -117,6 +121,8 @@ forbidden_modules = [
     "openai",
     "instructor",
     "apscheduler",
+    "telethon",
+    "playwright",
     "app.config",
     "app.obs",
     "app.runtime",

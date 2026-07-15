@@ -54,16 +54,16 @@ def test_mode_resolution(monkeypatch) -> None:  # type: ignore[no-untyped-def]
         "OPENROUTER_API_KEY": "sk-or-x",
         "POSTGRES_DSN": "postgresql+psycopg://u:p@h/db",
     }
-    for k in ("HH_MODE", "LLM_MODE", "HH_REFRESH_TOKEN", "HH_CLIENT_ID", "HH_RESUME_ID"):
+    for k in ("HH_MODE", "LLM_MODE", "HH_USERBOT_API_ID", "HH_RESUME_URL"):
         monkeypatch.delenv(k, raising=False)
     for k, v in base.items():
         monkeypatch.setenv(k, v)
 
     s = Settings.load(env_file=None)
-    assert s.resolved_hh_mode() == "fake"  # нет refresh token → моки
+    assert s.resolved_hh_mode() == "fake"  # нет доступа к источникам → моки
     assert s.resolved_llm_mode() == "real"  # ключ есть → реальный LLM
 
-    monkeypatch.setenv("HH_REFRESH_TOKEN", "rt")
+    monkeypatch.setenv("HH_USERBOT_API_ID", "123456")
     assert Settings.load(env_file=None).resolved_hh_mode() == "real"
 
     monkeypatch.setenv("HH_MODE", "fake")
