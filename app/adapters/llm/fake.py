@@ -170,6 +170,24 @@ def stub_mail_response(data: str) -> str:
     return json.dumps({"is_job": False, "summary": "Не про работу."}, ensure_ascii=False)
 
 
+def stub_invite_response(data: str) -> str:
+    """Детерминированный мок инвайт-текста (этап 3, LLM_MODE=fake): ≤300, компания упомянута."""
+    company = next(
+        (
+            line.split(":", 1)[1].strip()
+            for line in data.splitlines()
+            if line.startswith("Компания:")
+        ),
+        "вашей компанией",
+    )
+    text = (
+        f"Здравствуйте! Я Engineering Manager (10+ лет: платформы, финтех). "
+        f"Слежу за {company} — интересно, как устроена инженерная культура. "
+        f"Буду рад связаться и обменяться опытом."
+    )
+    return json.dumps({"text": text[:300]}, ensure_ascii=False)
+
+
 def _build_messages(
     system: str, data: str, few_shot: Sequence[tuple[str, str]]
 ) -> list[dict[str, str]]:

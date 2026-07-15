@@ -136,3 +136,25 @@ class InboxMessageRow(Base):
     processed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+
+class LinkedInTarget(Base):
+    """Заготовка инвайта (этап 3): роль+компания+ссылка+текст; ПД адресата нет (N1)."""
+
+    __tablename__ = "linkedin_target"
+    __table_args__ = (
+        CheckConstraint("status IN ('proposed','sent','accepted')", name="ck_invite_status"),
+        CheckConstraint("char_length(invite_text) <= 300", name="ck_invite_text_len"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    company: Mapped[str] = mapped_column(Text, nullable=False)
+    search_url: Mapped[str] = mapped_column(Text, nullable=False)
+    invite_text: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default="proposed")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

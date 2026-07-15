@@ -14,13 +14,19 @@ from aiogram import Bot
 from app.adapters.gmail.fake import FakeGmailInbox
 from app.adapters.gmail.source import GmailInbox
 from app.adapters.hh.fake import FakeHhVacancySource
-from app.adapters.llm.fake import FakeLlm, stub_mail_response, stub_scoring_response
+from app.adapters.llm.fake import (
+    FakeLlm,
+    stub_invite_response,
+    stub_mail_response,
+    stub_scoring_response,
+)
 from app.adapters.llm.instructor_openrouter import InstructorOpenRouterLlm
 from app.adapters.llm.prompts import load_system_prompt
 from app.adapters.persistence.database import make_engine, make_session_factory
 from app.adapters.persistence.dataset import JsonlDatasetAppender
 from app.adapters.persistence.repositories import (
     InboxMessageRepository,
+    InviteRepository,
     JobRunRepository,
     LabelRepository,
     LlmCallRepository,
@@ -28,12 +34,15 @@ from app.adapters.persistence.repositories import (
 )
 from app.adapters.telegram.notifier import NullPublisher, TelegramNotifier
 from app.application.build_inbox_digest import BuildInboxDigest
+from app.application.build_invite_batch import BuildInviteBatch, InviteBatchResult
 from app.application.classify_inbox import ClassifyInbox
 from app.application.job_runner import run_job
 from app.application.label_vacancy import LabelVacancy
 from app.application.publish_resume import PublishResult, PublishResume
 from app.application.run_daily_digest import DigestResult, RunDailyDigest
 from app.application.score_vacancy import ScoreVacancy
+from app.application.update_invite_status import Outcome as InviteOutcome
+from app.application.update_invite_status import UpdateInviteStatus
 from app.config import Settings
 from app.domain.relevance import LabeledVacancy, Verdict
 from app.domain.shared import PromptVersion
@@ -44,6 +53,7 @@ log = structlog.get_logger("runtime.composition")
 
 SCORING_PROMPT_VERSION = PromptVersion(purpose="scoring", version=1)
 MAIL_PROMPT_VERSION = PromptVersion(purpose="mail_classify", version=1)
+INVITE_PROMPT_VERSION = PromptVersion(purpose="invite", version=1)
 RELEVANCE_DATASET = Path("eval/datasets/relevance/v1.jsonl")
 PROFILE_PATH = Path("resumes/resume_em.md")
 PROFILE_LIMIT = 4000
@@ -91,7 +101,12 @@ class Services:
         recorder = LlmCallRepository(session)  # type: ignore[arg-type]
         if self._settings.resolved_llm_mode() == "fake":
             # детерминированные стабы per-purpose, честный llm_call (O1)
-            factory = stub_scoring_response if kind == "scoring" else stub_mail_response
+            factories = {
+                "scoring": stub_scoring_response,
+                "mail_classify": stub_mail_response,
+                "invite": stub_invite_response,
+            }
+            factory = factories.get(kind, stub_scoring_response)
             return FakeLlm(recorder=recorder, model=f"fake/{kind}-stub", response_factory=factory)
         return InstructorOpenRouterLlm(settings=self._settings, recorder=recorder)
 
@@ -167,6 +182,52 @@ class Services:
             client_secret=s.gmail_client_secret.get_secret_value(),
             refresh_token=s.gmail_refresh_token.get_secret_value(),
         )
+
+    async def build_invites(self) -> InviteBatchResult:
+        async with self._factory() as session:
+            use_case = BuildInviteBatch(
+                repo=InviteRepository(session),
+                llm=self._llm(session, kind="invite"),
+                notifier=TelegramNotifier(self._bot, self._settings.owner_chat_id),
+                system_prompt=load_system_prompt("invite", INVITE_PROMPT_VERSION.version),
+                prompt_version=INVITE_PROMPT_VERSION,
+                companies=self._settings.linkedin_companies,
+                roles=self._settings.linkedin_roles,
+                remind_days=self._settings.invites_remind_days,
+                dry_run=self._settings.dry_run,
+            )
+            result = await use_case.run()
+            await session.commit()
+            return result
+
+    async def build_invites_as_job(self) -> None:
+        async with self._factory() as session:
+            repo = JobRunRepository(session)
+
+            async def job(ctx: dict) -> tuple[int, int]:  # type: ignore[type-arg]
+                result = await self.build_invites()
+                return result.created, result.created
+
+            await run_job("weekly_invites", repo, job)
+            await session.commit()
+
+    async def update_invite(self, invite_id: int, action: str) -> InviteOutcome:
+        from app.domain.networking import InviteStatus
+
+        async with self._factory() as session:
+            use_case = UpdateInviteStatus(repo=InviteRepository(session))
+            outcome = await use_case.run(invite_id, InviteStatus(action))
+            await session.commit()
+            return outcome
+
+    async def invites_pending(self) -> list[str]:
+        async with self._factory() as session:
+            pending = await InviteRepository(session).pending()
+            return [f"{d.title} @ {d.company}\n{d.search_url}" for _, d in pending]
+
+    async def invites_counts(self) -> dict[str, int]:
+        async with self._factory() as session:
+            return await InviteRepository(session).counts()
 
     async def run_digest_as_job(self) -> None:
         """Плановый запуск: JobRun + root span + trace_id в логах."""

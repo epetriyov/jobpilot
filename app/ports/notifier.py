@@ -21,6 +21,19 @@ class DigestCard(BaseModel):
     reason: str
 
 
+class InviteCard(BaseModel):
+    """Карточка заготовки инвайта (UI, этап 3)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    invite_id: int
+    title: str
+    company: str
+    search_url: str
+    invite_text: str
+    status: str
+
+
 class NotifierPort(Protocol):
     async def send_digest(self, text: str) -> None: ...
 
@@ -28,6 +41,10 @@ class NotifierPort(Protocol):
 
     async def send_card(self, card: DigestCard) -> None:
         """Карточка с кнопками 👍/👎/🔗 (этап 1)."""
+        ...
+
+    async def send_invite_card(self, card: InviteCard) -> None:
+        """Карточка инвайта с кнопками статуса (этап 3)."""
         ...
 
 

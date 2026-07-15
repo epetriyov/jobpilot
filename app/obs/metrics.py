@@ -30,6 +30,9 @@ publish_skipped_total = _meter.create_counter(
 inbox_messages_total = _meter.create_counter(
     "inbox_messages_total", description="Обработанные письма по секциям (этап 2)", unit="1"
 )
+invite_drafts_total = _meter.create_counter(
+    "invite_drafts_total", description="Заготовки инвайтов по статусам (этап 3)", unit="1"
+)
 
 
 def record_llm_metrics(

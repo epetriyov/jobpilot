@@ -42,6 +42,13 @@ async def main() -> None:
         misfire_grace_time=3600,
     )
     scheduler.add_job(
+        services.build_invites_as_job,
+        CronTrigger.from_crontab(settings.invites_cron, timezone=settings.tz_scheduler),
+        id="weekly_invites",
+        coalesce=True,
+        misfire_grace_time=3600,
+    )
+    scheduler.add_job(
         services.publish_as_job,
         IntervalTrigger(hours=settings.publish_interval_hours),
         id="publish_resume",
@@ -55,6 +62,7 @@ async def main() -> None:
         dry_run=settings.dry_run,
         digest_cron=settings.digest_cron,
         publish_interval_hours=settings.publish_interval_hours,
+        invites_cron=settings.invites_cron,
     )
 
     stop = asyncio.Event()

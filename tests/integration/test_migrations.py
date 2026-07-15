@@ -59,6 +59,21 @@ def test_stage2_inbox_message_present(pg_url: str, alembic_config) -> None:
     assert "body" not in columns and "body_text" not in columns
 
 
+def test_stage3_linkedin_target_present(pg_url: str, alembic_config) -> None:
+    """Миграция 0004_stage3: linkedin_target + частичный уникальный индекс."""
+    from alembic import command
+
+    command.upgrade(alembic_config, "head")
+
+    engine = create_engine(pg_url)
+    inspector = inspect(engine)
+    assert "linkedin_target" in inspector.get_table_names()
+    columns = {c["name"] for c in inspector.get_columns("linkedin_target")}
+    assert {"title", "company", "search_url", "invite_text", "status", "sent_at"} <= columns
+    indexes = {i["name"] for i in inspector.get_indexes("linkedin_target")}
+    assert "uq_linkedin_target_active" in indexes
+
+
 def test_pgvector_extension_enabled(pg_url: str, alembic_config) -> None:
     from alembic import command
 
