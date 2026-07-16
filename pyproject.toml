@@ -60,7 +60,14 @@ packages = ["app"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["pgvector.*", "apscheduler.*", "instructor.*", "testcontainers.*"]
+module = [
+    "pgvector.*",
+    "apscheduler.*",
+    "instructor.*",
+    "testcontainers.*",
+    "telethon.*",
+    "playwright.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

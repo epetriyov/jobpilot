@@ -20,7 +20,7 @@
 
 > Пересмотр 2026-07-15: API HH недоступен. T104–T107, T115, T117 переопределены под userbot HH-бота (Telethon) + web-скрейпер рекомендаций (Playwright) + web-publish. Мёртвый API-код (hh/auth.py, cli/oauth_hh.py, test_hh_auth.py) удалён.
 
-- [ ] T104 [US1] [S-C4] Golden `tests/golden/hh_telegram/*.txt` (≥20 реальных сообщений HH-бота, обезличенные) → красный parse-тест → `adapters/hh/telegram_source.py` (парс title/company/url; непарсенное → raw-секция, warning) + `adapters/telegram_userbot/` (Telethon-обёртка чтения диалога) + CLI `app/cli/login_userbot.py`
+- [x] T104 [US1] [S-C4] Golden `tests/golden/hh_telegram/*.txt` (≥20 реальных сообщений HH-бота, обезличенные) → красный parse-тест → `adapters/hh/telegram_source.py` (парс title/company/url; непарсенное → raw-секция, warning) + `adapters/telegram_userbot/` (Telethon-обёртка чтения диалога) + CLI `app/cli/login_userbot.py`
 - [ ] T105 [US1] [S-C1] Golden `tests/golden/hh_web/*.html` (страница рекомендаций) → красный маппинг-тест → `adapters/hh/web_source.py` (Playwright по сохранённому профилю; Vacancy: вилка «от X» без «до», S3-очистка) + CLI `app/cli/hh_login.py` (ручной вход в браузер-профиль)
 - [ ] T106 [US1] [S-C2] Красный тест на модифицированном golden HTML → diff-сигнал «скрейпер сломан»; [S-C4b] логин/капча → SourceFetchFailed(hh_web) + эскалация, без обхода (S5); [S-C10] пауза ≥1с, честный User-Agent
 - [ ] T107 [US1] Свести источники по `HH_SOURCES` в композиции: список активных `VacancySourcePort` (telegram/web/fake); падение одного не роняет остальные (S4)
