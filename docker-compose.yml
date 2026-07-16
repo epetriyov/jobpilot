@@ -43,11 +43,16 @@ services:
     # внутри сети compose (bot, worker, userbot), снаружи VPS порты закрыты.
 
   bot:
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_BROWSERS: ${INSTALL_BROWSERS:-false}  # true на VPS для web-источника HH
     command: python -m app.bot
     env_file: .env
     volumes:
       - ./eval/datasets:/app/eval/datasets
+      - ./deploy/userbot:/app/deploy/userbot        # session Telethon (HH-бот)
+      - ./deploy/hh_profile:/app/deploy/hh_profile  # браузер-профиль HH (куки логина)
     environment:
       POSTGRES_DSN: postgresql+psycopg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot}@db:5432/${POSTGRES_DB:-jobpilot}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
@@ -62,11 +67,16 @@ services:
     restart: unless-stopped
 
   worker:
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_BROWSERS: ${INSTALL_BROWSERS:-false}
     command: python -m app.worker
     env_file: .env
     volumes:
       - ./eval/datasets:/app/eval/datasets
+      - ./deploy/userbot:/app/deploy/userbot
+      - ./deploy/hh_profile:/app/deploy/hh_profile
     environment:
       POSTGRES_DSN: postgresql+psycopg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot}@db:5432/${POSTGRES_DB:-jobpilot}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317

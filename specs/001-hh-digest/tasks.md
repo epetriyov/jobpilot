@@ -37,12 +37,12 @@
 
 ## Phase 4: User Story 3 — Publish каждые 4 часа (P2)
 
-- [ ] T115 [US3] [S-C3] Красный тест (Playwright на сохранённом HTML): «поднять» → published; лимит «ещё рано» → skip без ретрая, publish_skipped, job success; DRY_RUN → клик не выполняется → `adapters/hh/web_publish.py` (PublisherPort)
-- [~] T116 (use case+worker+/publish готовы; web-адаптер ждёт golden) [US3] `application/publish_resume.py` + worker-слот 4ч + `/publish`; метрика publish_skipped в `obs/metrics.py`
+- [x] T115 [US3] [S-C3] Красный тест (Playwright на сохранённом HTML): «поднять» → published; лимит «ещё рано» → skip без ретрая, publish_skipped, job success; DRY_RUN → клик не выполняется → `adapters/hh/web_publish.py` (PublisherPort)
+- [x] T116 [US3] application/publish_resume.py + worker-слот 4ч + /publish; web-publisher подключён в композиции (real+web+resume_url); метрика publish_skipped
 
 ## Phase 5: User Story 4 — Непарсенные сообщения HH-бота (P2)
 
-- [ ] T117 [US4] Красный тест: сообщение HH-бота нового формата → raw-секция дайджеста, warning ([S-C4]/S-C6-механика) — переписка HH теперь приходит тем же userbot-каналом, отдельного negotiations-API нет
+- [x] T117 [US4] Красный тест: сообщение HH-бота нового формата → raw-секция дайджеста, warning ([S-C4]/S-C6-механика) — переписка HH теперь приходит тем же userbot-каналом, отдельного negotiations-API нет
 
 ## Phase 6: User Story 5 — Доступ к источникам (P3)
 

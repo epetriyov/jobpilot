@@ -38,6 +38,7 @@ from app.config import Settings
 from app.domain.relevance import LabeledVacancy, Verdict
 from app.domain.shared import PromptVersion
 from app.ports.inbox import InboxPort
+from app.ports.notifier import PublisherPort
 from app.ports.sources import VacancySourcePort
 
 log = structlog.get_logger("runtime.composition")
@@ -219,9 +220,21 @@ class Services:
             return await LabelRepository(session).counts()
 
     async def publish(self) -> PublishResult:
-        # NullPublisher до T115 (адаптер HH publish появится с golden 429)
-        use_case = PublishResume(publisher=NullPublisher(), dry_run=self._settings.dry_run)
+        use_case = PublishResume(publisher=self._publisher(), dry_run=self._settings.dry_run)
         return await use_case.run()
+
+    def _publisher(self) -> PublisherPort:
+        s = self._settings
+        # real-режим + web-источник + URL резюме → Playwright-клик; иначе заглушка
+        if s.resolved_hh_mode() == "real" and "web" in s.hh_sources and s.hh_resume_url:
+            from app.adapters.hh.resume_playwright import PlaywrightResumeActor
+            from app.adapters.hh.web_publish import HhWebPublisher
+
+            actor = PlaywrightResumeActor(
+                profile_dir=s.hh_web_profile_dir, user_agent=s.hh_user_agent
+            )
+            return HhWebPublisher(actor=actor, resume_url=s.hh_resume_url)
+        return NullPublisher()
 
     async def publish_as_job(self) -> None:
         async with self._factory() as session:

@@ -1,0 +1,3 @@
+# session-файлы userbot — секреты, не в git
+*.session
+*.session-journal

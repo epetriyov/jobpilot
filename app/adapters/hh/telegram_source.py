@@ -90,3 +90,14 @@ class HhTelegramSource:
             vacancies.append(vacancy)
         log.info("hh_telegram_fetched", parsed=len(vacancies), unparsed=len(self.unparsed))
         return vacancies
+
+
+def render_raw_section(unparsed: list[str], limit: int = 5) -> str | None:
+    """T117: непарсенные сообщения HH-бота — секцией «на проверку», не теряем (S-C6)."""
+    if not unparsed:
+        return None
+    lines = [f"📨 HH-бот: {len(unparsed)} нераспознанных сообщений"]
+    for text in unparsed[:limit]:
+        first = text.strip().splitlines()[0] if text.strip() else "(пусто)"
+        lines.append(f"• {first[:120]}")
+    return "\n".join(lines)
