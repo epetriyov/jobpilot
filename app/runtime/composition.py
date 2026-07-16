@@ -81,10 +81,33 @@ class Services:
     def _sources(self) -> list[VacancySourcePort]:
         if self._settings.resolved_hh_mode() == "fake":
             return [self._fake_hh]
-        # Реальные адаптеры (пересмотр 2026-07-15): hh_telegram_source (userbot) и
-        # hh_web_source (Playwright) подключаются после записи golden — TDD в работе.
-        log.warning("hh_real_sources_pending", sources=self._settings.hh_sources)
-        return []
+        # Реальные источники по HH_SOURCES (пересмотр 2026-07-15). Падение любого
+        # изолируется в RunDailyDigest (S4): собранное из остальных не теряется.
+        s = self._settings
+        sources: list[VacancySourcePort] = []
+        if "telegram" in s.hh_sources and s.hh_userbot_api_id and s.hh_userbot_api_hash:
+            from app.adapters.hh.telegram_source import HhTelegramSource
+            from app.adapters.telegram_userbot.reader import TelethonReader
+
+            reader = TelethonReader(
+                api_id=s.hh_userbot_api_id,
+                api_hash=s.hh_userbot_api_hash.get_secret_value(),
+                session_path=s.hh_userbot_session,
+            )
+            sources.append(HhTelegramSource(reader=reader, bot_username=s.hh_bot_username))
+        if "web" in s.hh_sources:
+            from app.adapters.hh.web_playwright import PlaywrightLoader
+            from app.adapters.hh.web_source import HhWebSource
+
+            loader = PlaywrightLoader(
+                profile_dir=s.hh_web_profile_dir,
+                user_agent=s.hh_user_agent,
+                pause_sec=s.hh_request_pause_sec,
+            )
+            sources.append(HhWebSource(page_loader=loader, url=s.hh_recommendations_url))
+        if not sources:
+            log.warning("hh_no_real_sources", sources=s.hh_sources)
+        return sources
 
     def _llm(self, session: object, *, kind: str = "scoring"):  # type: ignore[no-untyped-def]
         recorder = LlmCallRepository(session)  # type: ignore[arg-type]

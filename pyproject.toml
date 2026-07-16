@@ -20,6 +20,7 @@ dependencies = [
     "opentelemetry-exporter-otlp-proto-grpc>=1.27",
     "telethon>=1.36",       # userbot HH-бота (пересмотр 2026-07-15; общий с GetMatch этапа 4)
     "playwright>=1.47",     # web-скрейпер рекомендаций HH + поднятие резюме
+    "beautifulsoup4>=4.12",  # парс HTML рекомендаций (в адаптере hh/web_source)
 ]
 
 [dependency-groups]
@@ -67,6 +68,7 @@ module = [
     "testcontainers.*",
     "telethon.*",
     "playwright.*",
+    "bs4.*",
 ]
 ignore_missing_imports = true
 
@@ -111,6 +113,7 @@ forbidden_modules = [
     "opentelemetry",
     "telethon",
     "playwright",
+    "bs4",
     "app.config",
     "app.obs",
     "app.runtime",
@@ -130,6 +133,7 @@ forbidden_modules = [
     "apscheduler",
     "telethon",
     "playwright",
+    "bs4",
     "app.config",
     "app.obs",
     "app.runtime",

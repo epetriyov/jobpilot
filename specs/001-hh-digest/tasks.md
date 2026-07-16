@@ -21,9 +21,9 @@
 > Пересмотр 2026-07-15: API HH недоступен. T104–T107, T115, T117 переопределены под userbot HH-бота (Telethon) + web-скрейпер рекомендаций (Playwright) + web-publish. Мёртвый API-код (hh/auth.py, cli/oauth_hh.py, test_hh_auth.py) удалён.
 
 - [x] T104 [US1] [S-C4] Golden `tests/golden/hh_telegram/*.txt` (≥20 реальных сообщений HH-бота, обезличенные) → красный parse-тест → `adapters/hh/telegram_source.py` (парс title/company/url; непарсенное → raw-секция, warning) + `adapters/telegram_userbot/` (Telethon-обёртка чтения диалога) + CLI `app/cli/login_userbot.py`
-- [ ] T105 [US1] [S-C1] Golden `tests/golden/hh_web/*.html` (страница рекомендаций) → красный маппинг-тест → `adapters/hh/web_source.py` (Playwright по сохранённому профилю; Vacancy: вилка «от X» без «до», S3-очистка) + CLI `app/cli/hh_login.py` (ручной вход в браузер-профиль)
-- [ ] T106 [US1] [S-C2] Красный тест на модифицированном golden HTML → diff-сигнал «скрейпер сломан»; [S-C4b] логин/капча → SourceFetchFailed(hh_web) + эскалация, без обхода (S5); [S-C10] пауза ≥1с, честный User-Agent
-- [ ] T107 [US1] Свести источники по `HH_SOURCES` в композиции: список активных `VacancySourcePort` (telegram/web/fake); падение одного не роняет остальные (S4)
+- [x] T105 [US1] [S-C1] Golden `tests/golden/hh_web/*.html` (страница рекомендаций) → красный маппинг-тест → `adapters/hh/web_source.py` (Playwright по сохранённому профилю; Vacancy: вилка «от X» без «до», S3-очистка) + CLI `app/cli/hh_login.py` (ручной вход в браузер-профиль)
+- [x] T106 [US1] [S-C2] Красный тест на модифицированном golden HTML → diff-сигнал «скрейпер сломан»; [S-C4b] логин/капча → SourceFetchFailed(hh_web) + эскалация, без обхода (S5); [S-C10] пауза ≥1с, честный User-Agent
+- [x] T107 [US1] Свести источники по `HH_SOURCES` в композиции: список активных `VacancySourcePort` (telegram/web/fake); падение одного не роняет остальные (S4)
 - [x] T108 [US1] [R-U1] [R-U5] Красные тесты → `application/score_vacancy.py`: скорит только unscored(prompt_version) (R1); невалидный выход → 1 retry → skip warning (R2); few-shot из labeled (R3); llm_call пишется (O1 — фейк)
 - [x] T109 [US1] [R-U4] [R-C1] Красный тест промпт-сборки: текст вакансии в data-блоке, не в system (R5); ни одна строка секретов из env не попадает в промпт
 - [x] T110 [US1] Красный integration-тест → `application/run_daily_digest.py`: сбор → mark_seen(снапшот) → скоринг новых → select_for_digest → карточки → mark_digest_sent; DRY_RUN помечает «ТЕСТ» ([F-I2]); частичный сбой источника → partial (S4)
@@ -46,7 +46,7 @@
 
 ## Phase 6: User Story 5 — Доступ к источникам (P3)
 
-- [ ] T118 [US5] CLI-хелперы доступа (заменяют oauth_hh, API нет): `login_userbot.py` (Telethon: api_id/api_hash + код → session-файл) и `hh_login.py` (Playwright headful: ручной вход в браузер-профиль HH, сессия в volume). Токены/куки не логируются; хелперы запускает владелец один раз
+- [x] T118 [US5] CLI-хелперы доступа (заменяют oauth_hh, API нет): `login_userbot.py` (Telethon: api_id/api_hash + код → session-файл) и `hh_login.py` (Playwright headful: ручной вход в браузер-профиль HH, сессия в volume). Токены/куки не логируются; хелперы запускает владелец один раз
 
 ## Phase 7: Eval и Polish
 
