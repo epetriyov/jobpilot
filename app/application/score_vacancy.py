@@ -67,7 +67,7 @@ class ScoreVacancy:
                 snapshot.source_ref,
                 Score(
                     value=llm_score.score,
-                    reason=llm_score.reason,
+                    reason=llm_score.to_reason(),  # обрезка до 200 (R2, многословность ≠ skip)
                     prompt_version=self._prompt_version.as_str(),
                     model=self._model_name,
                 ),

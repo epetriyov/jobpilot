@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.domain.relevance import Score, build_few_shot, select_for_digest
+from app.domain.relevance import LlmScore, Score, build_few_shot, select_for_digest
 from app.domain.shared import Source, SourceRef
 from app.ports.repositories import LabeledVacancy
 
@@ -27,6 +27,19 @@ class TestScoreSchema:
     def test_reason_max_200(self) -> None:
         with pytest.raises(ValidationError):
             Score(value=50, reason="x" * 201, prompt_version="v", model="m")
+
+
+class TestLlmScoreVerbosity:
+    """R2 (2026-07-17): многословный reason реального LLM не роняет вакансию —
+    терпим до 2000, обрезаем до 200. score вне диапазона по-прежнему реджект."""
+
+    def test_long_reason_accepted_and_truncated(self) -> None:
+        s = LlmScore(score=80, reason="ц" * 900)
+        assert len(s.to_reason()) == 200
+
+    def test_score_out_of_range_still_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            LlmScore(score=150, reason="ok")
 
 
 class TestSelectForDigest:
