@@ -23,11 +23,12 @@
 - [S-U3] Given description с HTML/эмодзи/переносами → Then description_text очищен, raw сохранён (S3).
 - [S-U4] Given 3 источника, второй бросает исключение → When сбор → Then вакансии 1-го и 3-го сохранены, событие SourceFetchFailed, job_run.status=partial (S4).
 
-HH (C):
-- [S-C1] Given записанный JSON ответа /vacancies (golden) → Then все поля VacancyDTO замаплены, вилка «от X» без «до» парсится как Salary(from=X, to=None).
-- [S-C2] Given access token истёк (401) → Then выполняется refresh и повтор запроса один раз.
-- [S-C3] Given publish возвращает 429 → Then без ретрая до следующего слота, лог info, publish_skipped метрика (не ошибка).
-- [S-C4] Given у пользователя есть отклики → Then для каждой вакансии с откликом запрошены similar_vacancies и влиты в общий пул с дедупом.
+HH (C) — пересмотр 2026-07-15: API недоступен, источники = HH-бот в Telegram (userbot) + web-скрейпер рекомендаций (Playwright):
+- [S-C1] Given записанный golden HTML страницы рекомендаций → Then все поля VacancyDTO замаплены, вилка «от X» без «до» → Salary(from=X, to=None), description_text очищен (S3).
+- [S-C2] Given модифицированный golden HTML (изменилась структура карточки) → Then тест падает с diff-сигналом «скрейпер сломан» (как [S-C8]).
+- [S-C3] Given при поднятии резюме HH показывает лимит («ещё рано») → Then без ретрая до следующего слота, лог info, publish_skipped метрика (не ошибка); DRY_RUN → клик не выполняется.
+- [S-C4] Given корпус реальных сообщений HH-бота в Telegram (golden, ≥20 шт.) → Then parse accuracy title/company/url ≥95%; непарсенное → raw-секция, не роняя пайплайн (как [S-C5]).
+- [S-C4b] Given страница требует логина/капчи → Then SourceFetchFailed(source="hh_web") + эскалация владельцу, без обхода капчи (S5, constitution IV); остальные источники собраны (S4).
 
 GetMatch (C):
 - [S-C5] Given корпус реальных сообщений бота GetMatch (golden, ≥20 шт.) → Then parse accuracy: title/company/url извлечены в ≥95% сообщений; непарсенное уходит в raw-секцию, не роняя пайплайн.

@@ -4,7 +4,9 @@
 
 **Created**: 2026-07-08
 
-**Status**: Partially implemented — механика на моках влита в main 2026-07-13; реальный HH-адаптер (T104–T107, T115, T117) и eval (T119–T121) ждут кредов владельца; этап НЕ закрыт
+**Status**: Partially implemented; **источники HH пересмотрены 2026-07-15** — API HH недоступен, заменён на userbot HH-бота (Telethon) + web-скрейпер рекомендаций (Playwright) + web-publish (см. research.md «Пересмотр источников» и tasks T104–T107, T115, T117, T118). Механика (домен/скоринг/дайджест/разметка) на моках влита в main; реальные адаптеры и eval — в работе; этап НЕ закрыт.
+
+> **Изменение объёма (2026-07-15)**: пункты Input про «OAuth-флоу → refresh token», «similar от откликов/избранного», «negotiations HH» относились к API и отменены. Вместо них: доступ через userbot-session + ручной вход в браузер-профиль; сбор из HH-бота (Telegram) и рекомендаций сайта; поднятие резюме — Playwright-клик. Инварианты домена (S1–S5, R1–R5) и acceptance-критерии по сути не меняются — меняется способ добычи данных за `VacancySourcePort`.
 
 **Input**: User description: "Этап 1 PLAN.md §6: OAuth-флоу (CLI-хелпер → refresh token); поиск по EM-запросам + similar от откликов/избранного; дедуп по seen; скоринг Flash-Lite через instructor (few-shot «последние N» из labeled_vacancy); карточки в чат: кнопки 👍/👎/🔗 (💾 и ✉️ — этап 6); /train; publish каждые 4 часа; /digest, /publish; сообщения из negotiations HH — в дайджест. Eval: датасет relevance ≥30 размеченных (собрать в DRY_RUN); обязательное сравнение Flash-Lite vs Flash — если ΔF1 незначима, остаёмся на Lite. Без CRM-операций: только выгрузка релевантного в чат."
 

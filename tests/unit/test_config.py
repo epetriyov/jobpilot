@@ -43,28 +43,24 @@ def test_missing_required_var_names_it(missing: str, monkeypatch: pytest.MonkeyP
 
 
 def test_hh_settings_optional_and_secret(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Этап 1: HH-переменные опциональны (сервис стартует без них);
-    заданные HH-секреты попадают в secret_values() → санитайзер логов ([X-U1])."""
+    """Этап 1 (пересмотр): HH-источники опциональны (сервис стартует без доступа);
+    userbot api_hash попадает в secret_values() → санитайзер логов ([X-U1])."""
     _clear_env(monkeypatch)
     for name, value in REQUIRED.items():
         monkeypatch.setenv(name, value)
-    for name in ("HH_CLIENT_ID", "HH_CLIENT_SECRET", "HH_REFRESH_TOKEN", "HH_RESUME_ID"):
+    for name in ("HH_MODE", "HH_USERBOT_API_ID", "HH_USERBOT_API_HASH", "HH_RESUME_URL"):
         monkeypatch.delenv(name, raising=False)
 
     settings = Settings.load(env_file=None)
-    assert settings.hh_client_id is None  # без HH-кредов старт не блокируется
+    assert settings.resolved_hh_mode() == "fake"  # без доступа — моки
+    assert settings.hh_sources == ["telegram", "web"]
 
-    monkeypatch.setenv("HH_CLIENT_ID", "app-id-1")
-    monkeypatch.setenv("HH_CLIENT_SECRET", "hh-secret-value")
-    monkeypatch.setenv("HH_REFRESH_TOKEN", "hh-refresh-value")
-    monkeypatch.setenv("HH_RESUME_ID", "resume-42")
+    monkeypatch.setenv("HH_USERBOT_API_ID", "123456")
+    monkeypatch.setenv("HH_USERBOT_API_HASH", "hh-userbot-hash-value")
     settings = Settings.load(env_file=None)
 
-    assert settings.hh_client_id == "app-id-1"
-    assert settings.hh_search_queries[0] == "Engineering Manager"
-    secrets = settings.secret_values()
-    assert "hh-secret-value" in secrets
-    assert "hh-refresh-value" in secrets
+    assert settings.resolved_hh_mode() == "real"  # есть доступ к userbot
+    assert "hh-userbot-hash-value" in settings.secret_values()
 
 
 def test_gmail_settings_optional_and_secret(monkeypatch: pytest.MonkeyPatch) -> None:

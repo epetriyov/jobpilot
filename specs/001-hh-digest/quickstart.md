@@ -1,15 +1,17 @@
 # Quickstart: проверка этапа 1 руками
 
-## Предусловия (данные владельца — не выдумываются)
+> Пересмотр 2026-07-15: API HH недоступен. Источники — userbot HH-бота (Telethon) + web-скрейпер (Playwright). До подключения всё работает на моках (`HH_MODE=auto` без доступа → fake).
 
-1. Приложение HH API: dev.hh.ru → «Создать приложение» → получить `HH_CLIENT_ID`, `HH_CLIENT_SECRET` → в `.env`.
-2. OAuth-хелпер (один раз):
-   ```bash
-   uv run python -m app.cli.oauth_hh
-   ```
-   Пройти авторизацию в браузере; хелпер выведет `HH_REFRESH_TOKEN=` и список резюме → выбрать `HH_RESUME_ID`; дописать обе строки в `.env`.
-3. `HH_USER_AGENT` — вписать свой контакт (требование HH), напр. `JobPilot/0.1 (you@example.com)`.
-4. DRY_RUN=true (боевой режим включается только в п.7).
+## Предусловия для реального HH (данные владельца; до них — моки)
+
+1. **userbot** (второй Telegram-аккаунт, подписанный на HH-бота):
+   - my.telegram.org → `HH_USERBOT_API_ID`, `HH_USERBOT_API_HASH` в `.env`;
+   - `uv run python -m app.cli.login_userbot` → вход по номеру+коду → session-файл.
+2. **web-профиль** (рекомендации + поднятие резюме):
+   - `uv run python -m app.cli.hh_login` → откроется браузер → войти на hh.ru руками (капчу решаете вы; система не обходит) → профиль сохранён;
+   - `HH_RESUME_URL` в `.env` — ссылка на резюме для поднятия.
+3. Образ с Chromium (только для web на VPS): `INSTALL_BROWSERS=true docker compose build`.
+4. DRY_RUN=true (боевое поднятие включается только в п.7).
 
 ## 1. Гейты
 

@@ -38,6 +38,7 @@ from app.config import Settings
 from app.domain.relevance import LabeledVacancy, Verdict
 from app.domain.shared import PromptVersion
 from app.ports.inbox import InboxPort
+from app.ports.notifier import PublisherPort
 from app.ports.sources import VacancySourcePort
 
 log = structlog.get_logger("runtime.composition")
@@ -81,11 +82,33 @@ class Services:
     def _sources(self) -> list[VacancySourcePort]:
         if self._settings.resolved_hh_mode() == "fake":
             return [self._fake_hh]
-        if not self._settings.hh_refresh_token:
-            log.warning("hh_source_disabled", reason="HH_MODE=real, но нет HH-кредов")
-            return []
-        # T107: HhVacancySource подключается после записи golden-файлов
-        return []
+        # Реальные источники по HH_SOURCES (пересмотр 2026-07-15). Падение любого
+        # изолируется в RunDailyDigest (S4): собранное из остальных не теряется.
+        s = self._settings
+        sources: list[VacancySourcePort] = []
+        if "telegram" in s.hh_sources and s.hh_userbot_api_id and s.hh_userbot_api_hash:
+            from app.adapters.hh.telegram_source import HhTelegramSource
+            from app.adapters.telegram_userbot.reader import TelethonReader
+
+            reader = TelethonReader(
+                api_id=s.hh_userbot_api_id,
+                api_hash=s.hh_userbot_api_hash.get_secret_value(),
+                session_path=s.hh_userbot_session,
+            )
+            sources.append(HhTelegramSource(reader=reader, bot_username=s.hh_bot_username))
+        if "web" in s.hh_sources:
+            from app.adapters.hh.web_playwright import PlaywrightLoader
+            from app.adapters.hh.web_source import HhWebSource
+
+            loader = PlaywrightLoader(
+                profile_dir=s.hh_web_profile_dir,
+                user_agent=s.hh_user_agent,
+                pause_sec=s.hh_request_pause_sec,
+            )
+            sources.append(HhWebSource(page_loader=loader, url=s.hh_recommendations_url))
+        if not sources:
+            log.warning("hh_no_real_sources", sources=s.hh_sources)
+        return sources
 
     def _llm(self, session: object, *, kind: str = "scoring"):  # type: ignore[no-untyped-def]
         recorder = LlmCallRepository(session)  # type: ignore[arg-type]
@@ -197,9 +220,21 @@ class Services:
             return await LabelRepository(session).counts()
 
     async def publish(self) -> PublishResult:
-        # NullPublisher до T115 (адаптер HH publish появится с golden 429)
-        use_case = PublishResume(publisher=NullPublisher(), dry_run=self._settings.dry_run)
+        use_case = PublishResume(publisher=self._publisher(), dry_run=self._settings.dry_run)
         return await use_case.run()
+
+    def _publisher(self) -> PublisherPort:
+        s = self._settings
+        # real-режим + web-источник + URL резюме → Playwright-клик; иначе заглушка
+        if s.resolved_hh_mode() == "real" and "web" in s.hh_sources and s.hh_resume_url:
+            from app.adapters.hh.resume_playwright import PlaywrightResumeActor
+            from app.adapters.hh.web_publish import HhWebPublisher
+
+            actor = PlaywrightResumeActor(
+                profile_dir=s.hh_web_profile_dir, user_agent=s.hh_user_agent
+            )
+            return HhWebPublisher(actor=actor, resume_url=s.hh_resume_url)
+        return NullPublisher()
 
     async def publish_as_job(self) -> None:
         async with self._factory() as session:

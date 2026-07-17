@@ -24,5 +24,13 @@ RUN uv sync --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH"
 
+# Chromium для web-скрейпера HH (пересмотр 2026-07-15) — только когда нужен реальный
+# web-источник: тяжёлый (~400 МБ). По умолчанию OFF, чтобы dev/fake-сборки были лёгкими.
+#   docker build --build-arg INSTALL_BROWSERS=true .
+ARG INSTALL_BROWSERS=false
+RUN if [ "$INSTALL_BROWSERS" = "true" ]; then \
+      playwright install --with-deps chromium; \
+    fi
+
 # По умолчанию — бот; worker переопределяет command в compose
 CMD ["python", "-m", "app.bot"]

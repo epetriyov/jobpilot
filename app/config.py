@@ -48,32 +48,37 @@ class Settings(BaseSettings):
     mail_whitelist_domains_raw: str = Field("", alias="MAIL_WHITELIST_DOMAINS")
     mail_body_limit: int = Field(2000, alias="MAIL_BODY_LIMIT")
 
-    # --- HH (этап 1; опциональны — без них HH-функции не активируются) ---
-    hh_client_id: str | None = Field(None, alias="HH_CLIENT_ID")
-    hh_client_secret: SecretStr | None = Field(None, alias="HH_CLIENT_SECRET")
-    hh_refresh_token: SecretStr | None = Field(None, alias="HH_REFRESH_TOKEN")
-    hh_resume_id: str | None = Field(None, alias="HH_RESUME_ID")
+    # --- HH (этап 1; пересмотр 2026-07-15: userbot HH-бота + web-скрейпер, API нет) ---
+    hh_sources_raw: str = Field("telegram,web", alias="HH_SOURCES")
     hh_user_agent: str = Field("JobPilot/0.1 (jobpilot-owner)", alias="HH_USER_AGENT")
-    hh_search_queries_raw: str = Field(
-        "Engineering Manager;Head of Engineering;Руководитель разработки",
-        alias="HH_SEARCH_QUERIES",
+    hh_request_pause_sec: float = Field(1.0, alias="HH_REQUEST_PAUSE_SEC")
+    # userbot (Telethon, второй аккаунт; общий с GetMatch этапа 4)
+    hh_userbot_api_id: int | None = Field(None, alias="HH_USERBOT_API_ID")
+    hh_userbot_api_hash: SecretStr | None = Field(None, alias="HH_USERBOT_API_HASH")
+    hh_userbot_session: str = Field("deploy/userbot/hh.session", alias="HH_USERBOT_SESSION")
+    hh_bot_username: str = Field("hh_ru_bot", alias="HH_BOT_USERNAME")
+    # web-скрейпер (Playwright по авторизованной сессии)
+    hh_web_profile_dir: str = Field("deploy/hh_profile", alias="HH_WEB_PROFILE_DIR")
+    hh_recommendations_url: str = Field(
+        "https://hh.ru/search/vacancy?order_by=relevance&items_on_page=50",
+        alias="HH_RECOMMENDATIONS_URL",
     )
-    hh_search_pages: int = Field(2, alias="HH_SEARCH_PAGES")
-    hh_request_pause_sec: float = Field(0.5, alias="HH_REQUEST_PAUSE_SEC")
+    hh_resume_url: str | None = Field(None, alias="HH_RESUME_URL")
     publish_interval_hours: int = Field(4, alias="PUBLISH_INTERVAL_HOURS")
     digest_cron: str = Field("0 10 * * *", alias="DIGEST_CRON")
     fewshot_limit: int = Field(10, alias="FEWSHOT_LIMIT")
     fewshot_text_limit: int = Field(800, alias="FEWSHOT_TEXT_LIMIT")
 
     @property
-    def hh_search_queries(self) -> list[str]:
-        return [q.strip() for q in self.hh_search_queries_raw.split(";") if q.strip()]
+    def hh_sources(self) -> list[str]:
+        return [s.strip() for s in self.hh_sources_raw.split(",") if s.strip()]
 
     def resolved_hh_mode(self) -> Literal["fake", "real"]:
-        """auto: real при наличии refresh token, иначе моки."""
+        """auto: real при наличии доступа хотя бы к одному источнику, иначе моки."""
         if self.hh_mode != "auto":
             return self.hh_mode
-        return "real" if self.hh_refresh_token else "fake"
+        has_access = self.hh_userbot_api_id is not None or self.hh_resume_url is not None
+        return "real" if has_access else "fake"
 
     def resolved_llm_mode(self) -> Literal["fake", "real"]:
         """auto: real при наличии ключа OpenRouter, иначе стаб-скоринг."""
@@ -125,8 +130,7 @@ class Settings(BaseSettings):
             self.openrouter_api_key,
             self.postgres_dsn,
             self.grafana_cloud_api_token,
-            self.hh_client_secret,
-            self.hh_refresh_token,
+            self.hh_userbot_api_hash,
             self.gmail_client_secret,
             self.gmail_refresh_token,
         ]

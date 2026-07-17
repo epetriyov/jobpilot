@@ -18,10 +18,12 @@
 
 ## Phase 2: User Story 1 — Дайджест (P1) 🎯 MVP
 
-- [ ] T104 [US1] Golden-файлы `tests/golden/hh/`: search_page.json (с вилкой «от X» без «до»), vacancy_full.json (HTML), similar.json, token_refresh.json — записываются владельцем/вручную из реальных ответов, обезличенные
-- [ ] T105 [US1] [S-C1] Красный contract-тест маппинга → `adapters/hh/mapping.py`: JSON HH → Vacancy (Salary(from=X, to=None); description_raw → S3-очистка доменом)
-- [ ] T106 [US1] [S-C2] Красный contract-тест (respx): 401 → refresh → повтор ровно 1 раз; повторный 401 → SourceFetchFailed → `adapters/hh/auth.py` + `client.py` (HH-User-Agent, пауза между запросами [S-C10]-механика)
-- [ ] T107 [US1] [S-C4] Красный contract-тест: отклики → similar → влиты с дедупом → `adapters/hh/source.py` (VacancySourcePort: запросы конфига + similar; полный текст только для невиденных)
+> Пересмотр 2026-07-15: API HH недоступен. T104–T107, T115, T117 переопределены под userbot HH-бота (Telethon) + web-скрейпер рекомендаций (Playwright) + web-publish. Мёртвый API-код (hh/auth.py, cli/oauth_hh.py, test_hh_auth.py) удалён.
+
+- [x] T104 [US1] [S-C4] Golden `tests/golden/hh_telegram/*.txt` (≥20 реальных сообщений HH-бота, обезличенные) → красный parse-тест → `adapters/hh/telegram_source.py` (парс title/company/url; непарсенное → raw-секция, warning) + `adapters/telegram_userbot/` (Telethon-обёртка чтения диалога) + CLI `app/cli/login_userbot.py`
+- [x] T105 [US1] [S-C1] Golden `tests/golden/hh_web/*.html` (страница рекомендаций) → красный маппинг-тест → `adapters/hh/web_source.py` (Playwright по сохранённому профилю; Vacancy: вилка «от X» без «до», S3-очистка) + CLI `app/cli/hh_login.py` (ручной вход в браузер-профиль)
+- [x] T106 [US1] [S-C2] Красный тест на модифицированном golden HTML → diff-сигнал «скрейпер сломан»; [S-C4b] логин/капча → SourceFetchFailed(hh_web) + эскалация, без обхода (S5); [S-C10] пауза ≥1с, честный User-Agent
+- [x] T107 [US1] Свести источники по `HH_SOURCES` в композиции: список активных `VacancySourcePort` (telegram/web/fake); падение одного не роняет остальные (S4)
 - [x] T108 [US1] [R-U1] [R-U5] Красные тесты → `application/score_vacancy.py`: скорит только unscored(prompt_version) (R1); невалидный выход → 1 retry → skip warning (R2); few-shot из labeled (R3); llm_call пишется (O1 — фейк)
 - [x] T109 [US1] [R-U4] [R-C1] Красный тест промпт-сборки: текст вакансии в data-блоке, не в system (R5); ни одна строка секретов из env не попадает в промпт
 - [x] T110 [US1] Красный integration-тест → `application/run_daily_digest.py`: сбор → mark_seen(снапшот) → скоринг новых → select_for_digest → карточки → mark_digest_sent; DRY_RUN помечает «ТЕСТ» ([F-I2]); частичный сбой источника → partial (S4)
@@ -35,16 +37,16 @@
 
 ## Phase 4: User Story 3 — Publish каждые 4 часа (P2)
 
-- [ ] T115 [US3] Golden `publish_429.json`; красный contract-тест [S-C3]: 429/touch_limit → skip без ретрая, лог info, метрика publish_skipped, job success → `adapters/hh/publish.py` (PublisherPort)
-- [~] T116 (use case+worker+/publish готовы; HH-адаптер ждёт golden) [US3] `application/publish_resume.py` + worker-слот 4ч + `/publish`; DRY_RUN не вызывает HH ([F-I2]); метрика publish_skipped в `obs/metrics.py`
+- [x] T115 [US3] [S-C3] Красный тест (Playwright на сохранённом HTML): «поднять» → published; лимит «ещё рано» → skip без ретрая, publish_skipped, job success; DRY_RUN → клик не выполняется → `adapters/hh/web_publish.py` (PublisherPort)
+- [x] T116 [US3] application/publish_resume.py + worker-слот 4ч + /publish; web-publisher подключён в композиции (real+web+resume_url); метрика publish_skipped
 
-## Phase 5: User Story 4 — Переписка HH (P2)
+## Phase 5: User Story 4 — Непарсенные сообщения HH-бота (P2)
 
-- [ ] T117 [US4] Golden `negotiations.json`; красный contract-тест: непрочитанные за 24ч → NegotiationUpdate; пустой список → секции нет → `adapters/hh/negotiations.py` + `application/build_inbox_digest.py` + секция в рендере дайджеста
+- [x] T117 [US4] Красный тест: сообщение HH-бота нового формата → raw-секция дайджеста, warning ([S-C4]/S-C6-механика) — переписка HH теперь приходит тем же userbot-каналом, отдельного negotiations-API нет
 
-## Phase 6: User Story 5 — OAuth-хелпер (P3)
+## Phase 6: User Story 5 — Доступ к источникам (P3)
 
-- [x] T118 [US5] `app/cli/oauth_hh.py`: интерактивный обмен кода на refresh token, список резюме (выбор HH_RESUME_ID), печать строк для .env; unit-тест логики обмена на respx; токены не логируются
+- [x] T118 [US5] CLI-хелперы доступа (заменяют oauth_hh, API нет): `login_userbot.py` (Telethon: api_id/api_hash + код → session-файл) и `hh_login.py` (Playwright headful: ручной вход в браузер-профиль HH, сессия в volume). Токены/куки не логируются; хелперы запускает владелец один раз
 
 ## Phase 7: Eval и Polish
 

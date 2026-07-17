@@ -18,6 +18,9 @@ dependencies = [
     "structlog>=24.4",
     "opentelemetry-sdk>=1.27",
     "opentelemetry-exporter-otlp-proto-grpc>=1.27",
+    "telethon>=1.36",       # userbot HH-бота (пересмотр 2026-07-15; общий с GetMatch этапа 4)
+    "playwright>=1.47",     # web-скрейпер рекомендаций HH + поднятие резюме
+    "beautifulsoup4>=4.12",  # парс HTML рекомендаций (в адаптере hh/web_source)
 ]
 
 [dependency-groups]
@@ -58,7 +61,15 @@ packages = ["app"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["pgvector.*", "apscheduler.*", "instructor.*", "testcontainers.*"]
+module = [
+    "pgvector.*",
+    "apscheduler.*",
+    "instructor.*",
+    "testcontainers.*",
+    "telethon.*",
+    "playwright.*",
+    "bs4.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -100,6 +111,9 @@ forbidden_modules = [
     "apscheduler",
     "structlog",
     "opentelemetry",
+    "telethon",
+    "playwright",
+    "bs4",
     "app.config",
     "app.obs",
     "app.runtime",
@@ -117,6 +131,9 @@ forbidden_modules = [
     "openai",
     "instructor",
     "apscheduler",
+    "telethon",
+    "playwright",
+    "bs4",
     "app.config",
     "app.obs",
     "app.runtime",

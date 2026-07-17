@@ -45,3 +45,26 @@
 ## 8. Секреты
 
 - Новые env: `HH_CLIENT_ID`, `HH_CLIENT_SECRET`, `HH_REFRESH_TOKEN`, `HH_RESUME_ID`, `HH_USER_AGENT`; `HH_CLIENT_SECRET`/`HH_REFRESH_TOKEN` — SecretStr, добавляются в `secret_values()` (санитайзер логов [X-U1] закрывает их автоматически).
+
+---
+
+## Пересмотр источников (2026-07-15): API → userbot + web-scrape
+
+**Причина**: HH API для проекта недоступен (нет доступа к выдаче рекомендаций через API). Данные берём двумя способами, оба за существующим `VacancySourcePort` — домен, дедуп, скоринг, дайджест не меняются.
+
+### Источник 1 — HH-бот в Telegram (userbot, Telethon)
+- Официальный HH-бот шлёт вакансии в личку. Читаем **входящие сообщения** userbot'ом на втором аккаунте (Telethon). Это чтение своих сообщений, не скрейп сайта HH — низкий ToS-риск. Инфраструктура общая с GetMatch (этап 4): userbot-контейнер выносится вперёд.
+- `HhTelegramSource(VacancySourcePort)`: парс сообщений бота → VacancyDTO (title/company/url регулярками по формату); непарсенное → raw-секция ([S-C4]/S-C6). Golden — записанные тексты сообщений.
+- Доступ: `HH_USERBOT_API_ID/API_HASH` (my.telegram.org) + разовый вход по коду → session-файл (CLI `login_userbot`).
+
+### Источник 2 — рекомендации с сайта (Playwright)
+- Playwright + Chromium по **авторизованной сессии** (сохранённый браузер-профиль в volume). Владелец один раз входит вручную через headful-хелпер `hh_login` (и решает капчу, если будет); дальше переиспользуются куки.
+- `HhWebSource(VacancySourcePort)`: страница рекомендаций → карточки → VacancyDTO; 1 rps, честный User-Agent; golden — HTML-снапшоты, изменение структуры ловится diff-тестом ([S-C1]/[S-C2]).
+- Капча/логин-стена в рабочем прогоне → `SourceFetchFailed(hh_web)` + эскалация владельцу, **без обхода капчи** (S5, constitution IV). Автоматический ввод логина/пароля не делается — только ручной вход в профиль.
+
+### Поднятие резюме — Playwright-клик (API нет)
+- `HhWebPublisher(PublisherPort)`: открыть резюме, нажать «поднять»; лимит «ещё рано» → publish_skipped (не ошибка, [S-C3]); DRY_RUN → клик не выполняется. Осознанное решение владельца (2026-07-15): авто-запись на сайт; каждое действие логируется.
+
+### Зависимости и контейнеры
+- Новые пакеты: `telethon` (userbot), `playwright` (+ `playwright install chromium`). Playwright тяжёлый (~1 ГБ) — отдельный сервис `scraper`, чтобы не раздувать bot; userbot — сервис `userbot`. VPS: повод для 4 ГБ RAM.
+- Тесты без живого HH: userbot — golden текстов (respx не нужен, парсинг чистый); web — Playwright против сохранённого HTML (file://), не против живого сайта; CI без сети и кредов.
