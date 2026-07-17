@@ -74,10 +74,20 @@ class Settings(BaseSettings):
         return [s.strip() for s in self.hh_sources_raw.split(",") if s.strip()]
 
     def resolved_hh_mode(self) -> Literal["fake", "real"]:
-        """auto: real при наличии доступа хотя бы к одному источнику, иначе моки."""
+        """auto: real при наличии доступа хотя бы к одному источнику, иначе моки.
+
+        Признаки доступа: userbot (api_id), URL резюме или залогиненный
+        браузер-профиль (непустой каталог после `hh_login`).
+        """
         if self.hh_mode != "auto":
             return self.hh_mode
-        has_access = self.hh_userbot_api_id is not None or self.hh_resume_url is not None
+        from pathlib import Path
+
+        profile = Path(self.hh_web_profile_dir)
+        web_logged_in = profile.is_dir() and any(p.name != ".gitignore" for p in profile.iterdir())
+        has_access = (
+            self.hh_userbot_api_id is not None or self.hh_resume_url is not None or web_logged_in
+        )
         return "real" if has_access else "fake"
 
     def resolved_llm_mode(self) -> Literal["fake", "real"]:

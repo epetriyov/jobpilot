@@ -1,5 +1,7 @@
 """[F-U1] Конфиг без обязательной переменной → понятная ошибка с её именем, сервис не стартует."""
 
+from pathlib import Path
+
 import pytest
 
 from app.config import ConfigError, Settings
@@ -42,7 +44,7 @@ def test_missing_required_var_names_it(missing: str, monkeypatch: pytest.MonkeyP
     assert missing in str(exc_info.value)
 
 
-def test_hh_settings_optional_and_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_hh_settings_optional_and_secret(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Этап 1 (пересмотр): HH-источники опциональны (сервис стартует без доступа);
     userbot api_hash попадает в secret_values() → санитайзер логов ([X-U1])."""
     _clear_env(monkeypatch)
@@ -50,6 +52,8 @@ def test_hh_settings_optional_and_secret(monkeypatch: pytest.MonkeyPatch) -> Non
         monkeypatch.setenv(name, value)
     for name in ("HH_MODE", "HH_USERBOT_API_ID", "HH_USERBOT_API_HASH", "HH_RESUME_URL"):
         monkeypatch.delenv(name, raising=False)
+    # изоляция от реального браузер-профиля (несуществующий путь → нет web-доступа)
+    monkeypatch.setenv("HH_WEB_PROFILE_DIR", str(tmp_path / "no_profile"))
 
     settings = Settings.load(env_file=None)
     assert settings.resolved_hh_mode() == "fake"  # без доступа — моки

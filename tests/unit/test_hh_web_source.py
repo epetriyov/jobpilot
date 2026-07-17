@@ -68,6 +68,10 @@ class TestBlockDetectionSC4b:
     def test_login_wall_detected(self) -> None:
         assert detect_block(golden("login_wall.html")) == "login"
 
+    def test_antibot_block_detected(self) -> None:
+        """Реальная анти-бот/VPN-заглушка HH (2026-07-17) → antibot, эскалация."""
+        assert detect_block(golden("blocked_antibot.html")) == "antibot"
+
     def test_normal_page_not_blocked(self) -> None:
         assert detect_block(golden("recommendations.html")) is None
 

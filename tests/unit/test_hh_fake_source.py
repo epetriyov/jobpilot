@@ -46,13 +46,14 @@ def test_stub_scoring_response_is_valid_and_deterministic() -> None:
     assert score.reason
 
 
-def test_mode_resolution(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+def test_mode_resolution(monkeypatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
     """HH_MODE/LLM_MODE=auto: fake без кредов, real с кредами; явное значение побеждает."""
     base = {
         "TELEGRAM_API_TOKEN": "1:t",
         "OWNER_CHAT_ID": "1",
         "OPENROUTER_API_KEY": "sk-or-x",
         "POSTGRES_DSN": "postgresql+psycopg://u:p@h/db",
+        "HH_WEB_PROFILE_DIR": str(tmp_path / "no_profile"),  # изоляция от реального профиля
     }
     for k in ("HH_MODE", "LLM_MODE", "HH_USERBOT_API_ID", "HH_RESUME_URL"):
         monkeypatch.delenv(k, raising=False)

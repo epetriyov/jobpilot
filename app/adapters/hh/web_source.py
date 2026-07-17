@@ -25,10 +25,14 @@ class HhWebBlocked(Exception):
     """Логин-стена или капча — не обходим, эскалируем ([S-C4b], S5)."""
 
 
-def detect_block(html: str) -> Literal["captcha", "login"] | None:
+def detect_block(html: str) -> Literal["captcha", "login", "antibot"] | None:
     lowered = html.lower()
     if 'data-qa="captcha"' in lowered or "не робот" in lowered or "captcha-wrapper" in lowered:
         return "captcha"
+    # анти-бот/VPN-заглушка HH (реальная сигнатура 2026-07-17): страница «Ой…»
+    # без карточек вакансий. Не обходим — эскалируем (S5, constitution IV).
+    if "vpn-cheeck-support-code" in lowered or ("заблокирован" in lowered and "vpn" in lowered):
+        return "antibot"
     if 'data-qa="account-login-form"' in lowered or "вход на hh.ru" in lowered:
         return "login"
     return None
