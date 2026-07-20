@@ -22,6 +22,7 @@ class RawEmail(BaseModel):
     body_text: str
     received_at: datetime
     url: str
+    body_html: str = ""  # HTML-часть (для парсинга вакансий из HH-писем, этап 1-rework)
 
 
 class InboxPort(Protocol):

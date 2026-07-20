@@ -48,8 +48,9 @@ class Settings(BaseSettings):
     mail_whitelist_domains_raw: str = Field("", alias="MAIL_WHITELIST_DOMAINS")
     mail_body_limit: int = Field(2000, alias="MAIL_BODY_LIMIT")
 
-    # --- HH (этап 1; пересмотр 2026-07-15: userbot HH-бота + web-скрейпер, API нет) ---
-    hh_sources_raw: str = Field("telegram,web", alias="HH_SOURCES")
+    # --- HH (этап 1; пересмотр 2026-07-17: email HH-подписки + userbot + web, API нет) ---
+    hh_sources_raw: str = Field("email", alias="HH_SOURCES")
+    hh_email_since_hours: int = Field(48, alias="HH_EMAIL_SINCE_HOURS")
     hh_user_agent: str = Field("JobPilot/0.1 (jobpilot-owner)", alias="HH_USER_AGENT")
     hh_request_pause_sec: float = Field(1.0, alias="HH_REQUEST_PAUSE_SEC")
     # userbot (Telethon, второй аккаунт; общий с GetMatch этапа 4)
@@ -85,8 +86,13 @@ class Settings(BaseSettings):
 
         profile = Path(self.hh_web_profile_dir)
         web_logged_in = profile.is_dir() and any(p.name != ".gitignore" for p in profile.iterdir())
+        # email-источник HH едет на Gmail (этап 2): доступ = наличие Gmail-токена
+        email_ready = "email" in self.hh_sources and self.gmail_refresh_token is not None
         has_access = (
-            self.hh_userbot_api_id is not None or self.hh_resume_url is not None or web_logged_in
+            self.hh_userbot_api_id is not None
+            or self.hh_resume_url is not None
+            or web_logged_in
+            or email_ready
         )
         return "real" if has_access else "fake"
 

@@ -86,6 +86,17 @@ class Services:
         # изолируется в RunDailyDigest (S4): собранное из остальных не теряется.
         s = self._settings
         sources: list[VacancySourcePort] = []
+        if "email" in s.hh_sources and s.gmail_refresh_token and s.gmail_client_id:
+            # HH шлёт «Вакансии по подписке» на почту → парсим из Gmail (этап 2)
+            from app.adapters.gmail.source import GmailInbox
+            from app.adapters.hh.email_source import HhEmailSource
+
+            inbox = GmailInbox(
+                client_id=s.gmail_client_id,
+                client_secret=s.gmail_client_secret.get_secret_value(),  # type: ignore[union-attr]
+                refresh_token=s.gmail_refresh_token.get_secret_value(),
+            )
+            sources.append(HhEmailSource(inbox=inbox, since_hours=s.hh_email_since_hours))
         if "telegram" in s.hh_sources and s.hh_userbot_api_id and s.hh_userbot_api_hash:
             from app.adapters.hh.telegram_source import HhTelegramSource
             from app.adapters.telegram_userbot.reader import TelethonReader

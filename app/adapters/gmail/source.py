@@ -77,7 +77,8 @@ class GmailInbox:
 def _to_raw_email(message: dict[str, Any]) -> RawEmail:
     payload = message.get("payload", {})
     headers = {h["name"].lower(): h["value"] for h in payload.get("headers", [])}
-    body_text = _extract_text(payload) or message.get("snippet", "")
+    body_text = _extract_text(payload, "text/plain") or message.get("snippet", "")
+    body_html = _extract_text(payload, "text/html")
     received_ms = int(message.get("internalDate", "0"))
     return RawEmail(
         gmail_id=message["id"],
@@ -85,13 +86,14 @@ def _to_raw_email(message: dict[str, Any]) -> RawEmail:
         subject=headers.get("subject", ""),
         snippet=message.get("snippet", ""),
         body_text=body_text,
+        body_html=body_html,
         received_at=datetime.fromtimestamp(received_ms / 1000, tz=UTC),
         url=f"https://mail.google.com/mail/u/0/#inbox/{message['id']}",
     )
 
 
-def _extract_text(payload: dict[str, Any]) -> str:
-    """text/plain part приоритетнее; фолбэк — первый part с данными или корень."""
+def _extract_text(payload: dict[str, Any], want_mime: str) -> str:
+    """Вернуть декодированную часть нужного MIME (text/plain или text/html)."""
     candidates: list[tuple[str, str]] = []
 
     def walk(part: dict[str, Any]) -> None:
@@ -102,8 +104,12 @@ def _extract_text(payload: dict[str, Any]) -> str:
             walk(child)
 
     walk(payload)
-    if not candidates:
-        return ""
-    preferred = next((data for mime, data in candidates if mime == "text/plain"), candidates[0][1])
-    padded = preferred + "=" * (-len(preferred) % 4)
+    match = next((data for mime, data in candidates if mime == want_mime), None)
+    if match is None:
+        # для text/plain допускаем фолбэк на любую часть; для html — строго
+        if want_mime == "text/plain" and candidates:
+            match = candidates[0][1]
+        else:
+            return ""
+    padded = match + "=" * (-len(match) % 4)
     return base64.urlsafe_b64decode(padded).decode(errors="replace")

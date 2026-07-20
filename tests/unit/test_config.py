@@ -55,9 +55,12 @@ def test_hh_settings_optional_and_secret(monkeypatch: pytest.MonkeyPatch, tmp_pa
     # изоляция от реального браузер-профиля (несуществующий путь → нет web-доступа)
     monkeypatch.setenv("HH_WEB_PROFILE_DIR", str(tmp_path / "no_profile"))
 
+    for name in ("GMAIL_REFRESH_TOKEN",):
+        monkeypatch.delenv(name, raising=False)
+
     settings = Settings.load(env_file=None)
     assert settings.resolved_hh_mode() == "fake"  # без доступа — моки
-    assert settings.hh_sources == ["telegram", "web"]
+    assert settings.hh_sources == ["email"]  # дефолт после пересмотра 2026-07-17
 
     monkeypatch.setenv("HH_USERBOT_API_ID", "123456")
     monkeypatch.setenv("HH_USERBOT_API_HASH", "hh-userbot-hash-value")
