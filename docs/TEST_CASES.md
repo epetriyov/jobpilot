@@ -23,9 +23,11 @@
 - [S-U3] Given description с HTML/эмодзи/переносами → Then description_text очищен, raw сохранён (S3).
 - [S-U4] Given 3 источника, второй бросает исключение → When сбор → Then вакансии 1-го и 3-го сохранены, событие SourceFetchFailed, job_run.status=partial (S4).
 
-HH (C) — пересмотр 2026-07-15: API недоступен, источники = HH-бот в Telegram (userbot) + web-скрейпер рекомендаций (Playwright):
-- [S-C1] Given записанный golden HTML страницы рекомендаций → Then все поля VacancyDTO замаплены, вилка «от X» без «до» → Salary(from=X, to=None), description_text очищен (S3).
-- [S-C2] Given модифицированный golden HTML (изменилась структура карточки) → Then тест падает с diff-сигналом «скрейпер сломан» (как [S-C8]).
+HH (C) — пересмотр 2026-07-17: API недоступен, userbot/web заблокированы; основной источник = письма HH «Вакансии по подписке» (email через Gmail). Кейсы userbot/web ([S-C1]–[S-C4b]) сохранены для опциональных хвостов.
+- [S-C0] Given golden обезличенного письма HH «Вакансии по подписке» → Then все VacancyDTO замаплены (title/company/url), дедуп по id вакансии, url очищен от utm/vss, вилка «от X» без «до» → Salary(from=X, to=None); строки-фрагменты зарплаты не попадают в company (S3).
+- [S-C0b] Given модифицированный golden письма (изменилась структура таблиц) → Then тест падает с diff-сигналом «парсер письма сломан» (как [S-C8]).
+- [S-C1] _(хвост web)_ Given записанный golden HTML страницы рекомендаций → Then все поля VacancyDTO замаплены, вилка «от X» без «до» → Salary(from=X, to=None), description_text очищен (S3).
+- [S-C2] _(хвост web)_ Given модифицированный golden HTML (изменилась структура карточки) → Then тест падает с diff-сигналом «скрейпер сломан» (как [S-C8]).
 - [S-C3] Given при поднятии резюме HH показывает лимит («ещё рано») → Then без ретрая до следующего слота, лог info, publish_skipped метрика (не ошибка); DRY_RUN → клик не выполняется.
 - [S-C4] Given корпус реальных сообщений HH-бота в Telegram (golden, ≥20 шт.) → Then parse accuracy title/company/url ≥95%; непарсенное → raw-секция, не роняя пайплайн (как [S-C5]).
 - [S-C4b] Given страница требует логина/капчи → Then SourceFetchFailed(source="hh_web") + эскалация владельцу, без обхода капчи (S5, constitution IV); остальные источники собраны (S4).

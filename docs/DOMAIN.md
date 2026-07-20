@@ -68,7 +68,7 @@
 - S4. Падение одного адаптера-источника не прерывает сбор из остальных.
 - S5. Источник вакансий — недоверенная внешняя среда: адаптер экранирует нераспознанное (raw-секция), не роняя пайплайн; captcha/anti-bot — не обходятся, а поднимают `SourceFetchFailed` с эскалацией владельцу (constitution IV).
 **События:** `VacancyDiscovered`, `SourceFetchFailed(source, error)`.
-**Порты:** `VacancySourcePort.fetch() -> list[VacancyDTO]`, `VacancyRepositoryPort`. Реализации HH (пересмотр 2026-07-15, API недоступен): `hh_telegram_source` (userbot Telethon читает HH-бота), `hh_web_source` (Playwright по авторизованной сессии рекомендаций); далее getmatch (userbot), 7 sites. Поднятие резюме — `PublisherPort` через `hh_web_publish` (Playwright-клик). Домен от способа добычи не зависит: смена API→scrape — только новые адаптеры.
+**Порты:** `VacancySourcePort.fetch() -> list[VacancyDTO]`, `VacancyRepositoryPort`. Реализации HH (пересмотр 2026-07-17): основная — `hh_email_source` (парс писем HH «Вакансии по подписке» из Gmail, `InboxPort`), т.к. API недоступен, а userbot/web заблокированы (api_id не создаётся; анти-бот-стена). Опциональные хвосты: `hh_telegram_source` (userbot Telethon), `hh_web_source` (Playwright); далее getmatch (userbot), 7 sites. Поднятие резюме — `PublisherPort` через `hh_web_publish` (Playwright-клик). Домен от способа добычи не зависит: смена API→scrape→email — только новые адаптеры.
 
 ### 3.2 RELEVANCE
 **Сущности/VO:** `Score(value 0..100, reason, prompt_version, model)`, `Label(verdict, embedding)`.

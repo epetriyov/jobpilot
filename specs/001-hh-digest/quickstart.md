@@ -1,17 +1,12 @@
 # Quickstart: проверка этапа 1 руками
 
-> Пересмотр 2026-07-15: API HH недоступен. Источники — userbot HH-бота (Telethon) + web-скрейпер (Playwright). До подключения всё работает на моках (`HH_MODE=auto` без доступа → fake).
+> Пересмотр 2026-07-17: основной источник HH — **email** (письма «Вакансии по подписке» из Gmail). userbot и web заблокированы (см. research.md); до подключения Gmail всё работает на моках (`HH_MODE=auto` без доступа → fake).
 
 ## Предусловия для реального HH (данные владельца; до них — моки)
 
-1. **userbot** (второй Telegram-аккаунт, подписанный на HH-бота):
-   - my.telegram.org → `HH_USERBOT_API_ID`, `HH_USERBOT_API_HASH` в `.env`;
-   - `uv run python -m app.cli.login_userbot` → вход по номеру+коду → session-файл.
-2. **web-профиль** (рекомендации + поднятие резюме):
-   - `uv run python -m app.cli.hh_login` → откроется браузер → войти на hh.ru руками (капчу решаете вы; система не обходит) → профиль сохранён;
-   - `HH_RESUME_URL` в `.env` — ссылка на резюме для поднятия.
-3. Образ с Chromium (только для web на VPS): `INSTALL_BROWSERS=true docker compose build`.
-4. DRY_RUN=true (боевое поднятие включается только в п.7).
+1. **email** (основной путь): подписаться на рассылку вакансий на hh.ru (письма «Вакансии по подписке» приходят на почту) и подключить Gmail этапа 2 (`GMAIL_CLIENT_ID`/`GMAIL_CLIENT_SECRET`/`GMAIL_REFRESH_TOKEN`, см. `app.cli.oauth_gmail`). `HH_SOURCES=email` (дефолт) → `resolved_hh_mode`=real. Больше ничего не нужно: ни браузера, ни второго аккаунта.
+2. _(опционально, если каналы разблокируются)_ **userbot** — my.telegram.org → `HH_USERBOT_API_ID/API_HASH` + `app.cli.login_userbot`; **web-профиль** — `app.cli.hh_login` (ручной вход, капчу решаете вы) + `HH_RESUME_URL`; образ с Chromium `INSTALL_BROWSERS=true docker compose build`. Добавить нужные адаптеры в `HH_SOURCES` (`email,telegram,web`).
+3. DRY_RUN=true (боевое поднятие включается только в п.7).
 
 ## 1. Гейты
 
@@ -26,7 +21,7 @@ make migrate                    # 0002_stage1 применяется идемп�
 docker compose up -d --build
 # в Telegram: /digest
 ```
-Ожидаемо: подборка «🧪 ТЕСТ» ≤50 карточек с реального поиска HH, скор по убыванию, у каждой 👍/👎/🔗; при повторном /digest те же вакансии не приходят.
+Ожидаемо: подборка «🧪 ТЕСТ» ≤50 карточек из писем HH «Вакансии по подписке», скор по убыванию, у каждой 👍/👎/🔗; при повторном /digest те же вакансии не приходят.
 
 ## 3. Разметка и /train
 

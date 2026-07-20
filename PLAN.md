@@ -19,7 +19,7 @@
 | LLM по умолчанию | Доступ ко всем моделям — через **OpenRouter** (OpenAI-совместимый API, один ключ). Скоринг/классификация/summary — `google/gemini-2.5-flash-lite`; письма (этап 6) — `google/gemini-2.5-pro` |
 | Свап моделей | Первоклассная возможность: LlmPort + **instructor** в openai-режиме поверх OpenRouter; модель per-purpose — строка в конфиге (`LLM_MODEL_SCORING`, `LLM_MODEL_LETTERS`, ...), свап = смена строки без кода. `cost_usd` в llm_call — фактический из ответа OpenRouter (прайсы конфига — фолбэк). На этапе 1 — обязательный eval Flash-Lite vs Flash на размеченном датасете |
 | LinkedIn | Полуавтомат: заготовки инвайтов, отправка вручную; входящие — через Gmail-уведомления |
-| HH источники (пересмотр 2026-07-15) | HH API недоступен. Данные берём двумя адаптерами `VacancySourcePort`: **(1) HH-бот в Telegram** — userbot (Telethon, второй аккаунт) читает сообщения официального HH-бота, парсит в вакансии; **(2) рекомендации с сайта** — Playwright по авторизованной сессии профиля (ручной логин один раз в сохранённый браузер-профиль). `HH_SOURCES=telegram,web`. Капча не обходится (эскалация владельцу), логин — только вручную. Домен Sourcing не меняется |
+| HH источники (пересмотр 2026-07-17) | HH API недоступен; userbot (my.telegram.org отдаёт ERROR при создании api_id) и web-скрейп (анти-бот/VPN-стена) заблокированы. **Основной источник — email**: HH шлёт подборки «Вакансии по подписке» на почту, парсим через уже подключённый Gmail. Адаптер `HhEmailSource(VacancySourcePort)` над `InboxPort`; `parse_hh_email` — чистая функция над HTML письма. `HH_SOURCES=email`. userbot/web — опциональные хвосты (включатся, если каналы разблокируются). Обход анти-бота/капчи не строим (S5). Домен Sourcing не меняется |
 | GetMatch | Userbot (Telethon), второй Telegram-аккаунт (общий с HH-ботом) |
 | Publish резюме HH | Каждые 4 часа, авто-клик «поднять» через Playwright (API нет); лимит HH → publish_skipped; уважает DRY_RUN. Действие-запись на сайт: осознанное решение владельца, каждое действие логируется |
 | Почта | Gmail API, `gmail.readonly`, refresh token |
@@ -48,7 +48,7 @@ jobpilot/
   app/
     domain/       sourcing/ relevance/ crm/ correspondence/ networking/ shared/
     ports/        VacancySourcePort, LlmPort, InboxPort, NotifierPort, Repository-порты
-    adapters/     hh/{telegram_source, web_source, web_publish} getmatch/ sites/×7 gmail/ telegram/ telegram_userbot/ (Telethon) llm/{instructor_openrouter, fake}/ persistence/
+    adapters/     hh/{email_source, telegram_source, web_source, web_publish} getmatch/ sites/×7 gmail/ telegram/ telegram_userbot/ (Telethon) llm/{instructor_openrouter, fake}/ persistence/
     application/  use cases: RunDailyDigest, ScoreVacancy, PublishResume, BuildInboxDigest,
                   BuildInviteBatch, SaveVacancy*, ChangeStatus*, GenerateCoverLetter* (*— этап 6)
     bot/ worker/ mcp/ obs/
@@ -78,9 +78,10 @@ GitHub-репозиторий; spec-kit init + constitution; Actions CI (ruff, m
 🖐 Пользователь: заводит free-аккаунт Grafana Cloud и передаёт креды, видит дашборд и тестовый алерт, сообщение бота, ревью-комментарий агента в тестовом PR.
 
 ### Этап 1. Вся работа с HH (только выгрузка в чат)
-> Пересмотр 2026-07-15: API HH недоступен — источники изменены на userbot HH-бота (Telethon) + web-скрейпер рекомендаций (Playwright), поднятие резюме — авто-клик через Playwright. Домен, дедуп, скоринг, дайджест, разметка — без изменений.
+> Пересмотр 2026-07-15: API HH недоступен — источники изменены на userbot + web-скрейпер, поднятие резюме — Playwright-клик.
+> Пересмотр 2026-07-17: userbot и web заблокированы (api_id не создаётся; анти-бот/VPN-стена). **Основной источник — email** (письма HH «Вакансии по подписке» через Gmail, `HhEmailSource`). Домен, дедуп, скоринг, дайджест, разметка — без изменений.
 
-Доступ: userbot-логин (CLI-хелпер → session) + ручной вход в браузер-профиль HH (CLI-хелпер); сбор из HH-бота (Telegram) + рекомендаций сайта; дедуп по seen; скоринг Flash-Lite через instructor (few-shot «последние N» из labeled_vacancy); карточки в чат: кнопки 👍/👎/🔗 (💾 и ✉️ — этап 6); `/train`; publish каждые 4 часа (Playwright-клик); `/digest`, `/publish`; сообщения HH-бота, не распознанные как вакансии, — raw-секцией.
+Доступ: подписка на рассылку вакансий HH + подключённый Gmail (этап 2); сбор из писем «Вакансии по подписке» (`HH_SOURCES=email`); дедуп по seen; скоринг Flash-Lite через instructor (few-shot «последние N» из labeled_vacancy); карточки в чат: кнопки 👍/👎/🔗 (💾 и ✉️ — этап 6); `/train`; `/digest`. Хвосты userbot/web (поднятие резюме Playwright-кликом, raw-секция непарсенного) — опциональны, включатся при разблокировке каналов.
 Eval: датасет `relevance` ≥30 размеченных (собрать в DRY_RUN); **обязательное сравнение Flash-Lite vs Flash** — если ΔF1 незначима, остаёмся на Lite; отчёт в eval/reports/.
 ✅ 10:00 → ≤50 карточек; 429 на publish обработан; невалидный выход LLM не роняет пайплайн; каждый вызов в llm_call/Langfuse.
 🖐 3 дня DRY_RUN, разметка ≥30 вакансий, явное включение боевого режима.
