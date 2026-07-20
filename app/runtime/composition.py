@@ -54,7 +54,7 @@ log = structlog.get_logger("runtime.composition")
 
 SCORING_PROMPT_VERSION = PromptVersion(purpose="scoring", version=1)
 MAIL_PROMPT_VERSION = PromptVersion(purpose="mail_classify", version=1)
-INVITE_PROMPT_VERSION = PromptVersion(purpose="invite", version=1)
+INVITE_PROMPT_VERSION = PromptVersion(purpose="invite", version=2)
 RELEVANCE_DATASET = Path("eval/datasets/relevance/v1.jsonl")
 PROFILE_PATH = Path("resumes/resume_em.md")
 PROFILE_LIMIT = 4000

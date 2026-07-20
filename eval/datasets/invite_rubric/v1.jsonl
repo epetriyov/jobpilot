@@ -1,0 +1,14 @@
+{"id": "inv-1", "input": {"role": "CTO", "company": "Ozon"}, "meta": {"source": "config-list"}}
+{"id": "inv-2", "input": {"role": "CTO", "company": "Revolut"}, "meta": {"source": "config-list"}}
+{"id": "inv-3", "input": {"role": "CTO", "company": "Авито"}, "meta": {"source": "config-list"}}
+{"id": "inv-4", "input": {"role": "CTO", "company": "Сбер"}, "meta": {"source": "config-list"}}
+{"id": "inv-5", "input": {"role": "CPO", "company": "Wildberries"}, "meta": {"source": "config-list"}}
+{"id": "inv-6", "input": {"role": "CPO", "company": "Notion"}, "meta": {"source": "config-list"}}
+{"id": "inv-7", "input": {"role": "CPO", "company": "Miro"}, "meta": {"source": "config-list"}}
+{"id": "inv-8", "input": {"role": "CPO", "company": "Aviasales"}, "meta": {"source": "config-list"}}
+{"id": "inv-9", "input": {"role": "HRBP", "company": "Яндекс"}, "meta": {"source": "config-list"}}
+{"id": "inv-10", "input": {"role": "HRBP", "company": "Datadog"}, "meta": {"source": "config-list"}}
+{"id": "inv-11", "input": {"role": "HRBP", "company": "VK"}, "meta": {"source": "config-list"}}
+{"id": "inv-12", "input": {"role": "Senior IT Recruiter", "company": "Тинькофф"}, "meta": {"source": "config-list"}}
+{"id": "inv-13", "input": {"role": "Senior IT Recruiter", "company": "Stripe"}, "meta": {"source": "config-list"}}
+{"id": "inv-14", "input": {"role": "Senior IT Recruiter", "company": "Booking.com"}, "meta": {"source": "config-list"}}

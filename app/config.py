@@ -131,6 +131,8 @@ class Settings(BaseSettings):
     llm_model_scoring: str = Field("google/gemini-2.5-flash-lite", alias="LLM_MODEL_SCORING")
     llm_model_summary: str = Field("google/gemini-2.5-flash-lite", alias="LLM_MODEL_SUMMARY")
     llm_model_letters: str = Field("google/gemini-2.5-pro", alias="LLM_MODEL_LETTERS")
+    # инвайты (этап 3): flash-lite не тянет анти-штамп/роль-тон (eval invite_rubric) → flash
+    llm_model_invite: str = Field("google/gemini-2.5-flash", alias="LLM_MODEL_INVITE")
     llm_model_judge: str = Field("google/gemini-2.5-flash", alias="LLM_MODEL_JUDGE")
     price_per_mtok_in: float = Field(0.10, alias="PRICE_PER_MTOK_IN")
     price_per_mtok_out: float = Field(0.40, alias="PRICE_PER_MTOK_OUT")

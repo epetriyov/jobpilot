@@ -31,7 +31,14 @@ REPORTS = ROOT / "eval" / "reports"
 
 # Пороги контекстов (TEST_CASES.md). smoke — служебный, порог 1.0.
 # relevance ([R-E1]): precision ≥0.7 И recall ≥0.7 — проверяется отдельно (не pass-rate).
-THRESHOLDS: dict[str, float] = {"smoke": 1.0, "relevance": 0.7}
+# mail_classify ([M-E1]): accuracy ≥0.9 И FN на critical (оффер/интервью) = 0 — отдельно.
+# invite_rubric ([N-E1]): LLM-as-judge pass-rate ≥0.9 — отдельно.
+THRESHOLDS: dict[str, float] = {
+    "smoke": 1.0,
+    "relevance": 0.7,
+    "mail_classify": 0.9,
+    "invite_rubric": 0.9,
+}
 
 
 class Score(BaseModel):
@@ -166,6 +173,127 @@ async def evaluate_relevance(model_b: str | None) -> int:
     return 0 if ok else 1
 
 
+async def evaluate_mail_classify() -> int:
+    """[M-E1] Контекст mail_classify: accuracy ≥0.9 И FN(critical)=0. Возврат — код выхода."""
+    from eval.runners.mail_classify import _Recorder as MailRecorder
+    from eval.runners.mail_classify import classify_dataset
+
+    version, path = latest_version("mail_classify")
+    examples = load(path)
+    settings = Settings.load()
+    use_real = settings.resolved_llm_mode() == "real" and os.environ.get("EVAL_FAKE") != "1"
+    model = settings.llm_model_summary
+
+    rec = MailRecorder()
+    m = await classify_dataset(
+        examples, model=model, recorder=rec, use_real=use_real, settings=settings
+    )
+    ok = m.accuracy >= 0.9 and m.fn_critical == 0
+    report = _write_mail_report(version, use_real, m, rec.records)
+    blocker = "" if m.fn_critical == 0 else f"  ⛔ FN(critical)={m.fn_critical}"
+    print(
+        f"[eval:mail_classify] model={m.model} accuracy={m.accuracy:.3f} "
+        f"FN(critical)={m.fn_critical} (TP={m.tp} FP={m.fp} FN={m.fn} TN={m.tn}) "
+        f"-> {'PASS' if ok else 'FAIL'}{blocker}\nreport: {report.relative_to(ROOT)}"
+    )
+    return 0 if ok else 1
+
+
+def _write_mail_report(version, use_real, m, records) -> Path:  # type: ignore[no-untyped-def]
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y-%m-%d")
+    out = REPORTS / f"mail_classify_{stamp}.md"
+    cost = sum(r.cost_usd for r in records)
+    provider = "real (OpenRouter)" if use_real else "fake (стаб)"
+    acc_ok = "✅" if m.accuracy >= 0.9 else "❌"
+    fn_ok = "✅" if m.fn_critical == 0 else "❌"
+    status = "✅ PASS" if (m.accuracy >= 0.9 and m.fn_critical == 0) else "❌ FAIL"
+    lines = [
+        f"# Eval report: mail_classify ({version})",
+        "",
+        f"- **Дата**: {stamp} · **Провайдер**: {provider} · **Примеров**: {m.total}",
+        "- **Критерий [M-E1]**: accuracy ≥0.9 И FN на critical (оффер/интервью) = 0 (блокер)",
+        f"- **Стоимость прогона**: ${cost:.6f}",
+        "",
+        "| Модель | Accuracy | FN(critical) | TP | FP | FN | TN |",
+        "|---|---|---|---|---|---|---|",
+        f"| {m.model} | {acc_ok} {m.accuracy:.3f} | {fn_ok} {m.fn_critical} "
+        f"| {m.tp} | {m.fp} | {m.fn} | {m.tn} |",
+        "",
+        f"**Статус**: {status}",
+    ]
+    if m.total < 40:
+        lines += ["", f"> ⚠️ Примеров {m.total} < 40 ([M-E1]); метрики предварительные."]
+    out.write_text("\n".join(lines) + "\n")
+    return out
+
+
+async def evaluate_invite_rubric() -> int:
+    """[N-E1] Контекст invite_rubric: LLM-as-judge pass-rate ≥0.9. Возврат — код выхода."""
+    from eval.runners.invite_rubric import _Recorder as InvRecorder
+    from eval.runners.invite_rubric import judge_dataset
+
+    version, path = latest_version("invite_rubric")
+    examples = load(path)
+    settings = Settings.load()
+    use_real = settings.resolved_llm_mode() == "real" and os.environ.get("EVAL_FAKE") != "1"
+
+    rec = InvRecorder()
+    m = await judge_dataset(examples, recorder=rec, use_real=use_real, settings=settings)
+    ok = m.pass_rate >= 0.9
+    report = _write_invite_report(version, use_real, m, rec.records)
+    print(
+        f"[eval:invite_rubric] gen={m.gen_model} judge={m.judge_model} "
+        f"pass_rate={m.pass_rate:.3f} ({m.passed}/{m.evaluable} оценённых; "
+        f"fail: len={m.fail_length} company={m.fail_company} rubric={m.fail_judge}; "
+        f"judge_errors={m.judge_errors}) -> {'PASS' if ok else 'FAIL'}\n"
+        f"report: {report.relative_to(ROOT)}"
+    )
+    return 0 if ok else 1
+
+
+def _write_invite_report(version, use_real, m, records) -> Path:  # type: ignore[no-untyped-def]
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y-%m-%d")
+    out = REPORTS / f"invite_rubric_{stamp}.md"
+    cost = sum(r.cost_usd for r in records)
+    provider = "real (OpenRouter)" if use_real else "fake (стаб)"
+    status = "✅ PASS" if m.pass_rate >= 0.9 else "❌ FAIL"
+    lines = [
+        f"# Eval report: invite_rubric ({version})",
+        "",
+        f"- **Дата**: {stamp} · **Провайдер**: {provider} · **Пар (роль×компания)**: {m.total}",
+        "- **Критерий [N-E1]**: LLM-as-judge pass-rate ≥0.9 "
+        "(персонализация, длина ≤300, тон под роль, без штампов)",
+        f"- **Генератор**: {m.gen_model} · **Судья**: {m.judge_model} · **Стоимость**: ${cost:.6f}",
+        "",
+        "| pass-rate | passed | оценено | fail(длина) | fail(компания) | fail(рубрика) "
+        "| judge_errors |",
+        "|---|---|---|---|---|---|---|",
+        f"| {m.pass_rate:.3f} | {m.passed} | {m.evaluable}/{m.total} | {m.fail_length} "
+        f"| {m.fail_company} | {m.fail_judge} | {m.judge_errors} |",
+        "",
+        "> Промпт инвайтов — v2 (усилены анти-штамп/роль-тон по итогам этого eval).",
+        f"**Статус**: {status}",
+    ]
+    if m.judge_errors:
+        lines += [
+            "",
+            f"> ⚠️ Судья ({m.judge_model}) не отдал валидную схему за {m.judge_errors} "
+            "пример(ов) даже с ретраями (обрыв JSON у gemini-flash) — исключены из знаменателя.",
+        ]
+    if m.pass_rate < 0.9:
+        lines += [
+            "",
+            "> ⚠️ Ниже порога 0.9. Метрика шумная на 14 примерах (прогоны 0.71–0.86); "
+            "отказы судьи содержательны (роль-тон/штампы). Финальный гейт качества — ручная "
+            "проверка владельцем 5 заготовок (T313); при необходимости — расширить датасет "
+            "и/или поднять модель инвайтов (LLM_MODEL_INVITE) до pro.",
+        ]
+    out.write_text("\n".join(lines) + "\n")
+    return out
+
+
 def _dedup_count(examples: list[dict]) -> dict:  # type: ignore[type-arg]
     return {ex["id"]: ex for ex in examples}
 
@@ -240,6 +368,12 @@ async def main() -> None:
     if args.context == "relevance":
         code = await evaluate_relevance(args.model_b)
         raise SystemExit(code)
+
+    if args.context == "mail_classify":
+        raise SystemExit(await evaluate_mail_classify())
+
+    if args.context == "invite_rubric":
+        raise SystemExit(await evaluate_invite_rubric())
 
     result = await evaluate(args.context)
     report = write_report(result)

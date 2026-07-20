@@ -33,8 +33,8 @@
 
 ## Phase 5: Eval и Polish
 
-- [ ] T212 [M-E1] Раннер `mail_classify`: accuracy ≥0.9 + false negative offer/interview = 0 (блокер); датасет из мок-корпуса сразу, реальные письма добавляются после кредов
-- [ ] T213 Гейты зелёные; quickstart актуален; отчёт (DoD §7)
+- [x] T212 [M-E1] Раннер `mail_classify` (`eval/runners/mail_classify.py` + диспетчер в `run.py`): accuracy ≥0.9 + FN(оффер/интервью)=0 (блокер); датасет `eval/datasets/mail_classify/v1.jsonl` (43 письма, 9 critical) из мок-корпуса; повторяет prefilter→LLM продового пути. Прогон real Gemini: accuracy 1.000, FN(critical)=0 → PASS
+- [x] T213 Гейты зелёные (ruff/mypy/import-linter/pytest); отчёт `eval/reports/mail_classify_2026-07-20.md` (DoD §7)
 - [ ] T214 🖐 Владелец: 2 дня сверки summary с оригиналами → закрытие этапа
 
 ## Dependencies

@@ -53,9 +53,9 @@
 
 ## Phase 7: Eval и Polish
 
-- [ ] T119 [R-E1] Раннер `relevance` в `eval/runners/run.py`: precision/recall/F1 c порогами 0.7 как assertions; режим записанных ответов для CI; поддержка `MODEL_B=` для сравнения (отчёт с ΔF1, вердикт по |ΔF1| ≤ 0.05)
-- [ ] T120 Обновить дашборд-заметки/квикстарт при необходимости; `make lint`+`make test` зелёные; финальный отчёт (DoD §7)
-- [ ] T121 🖐 Ручная фаза владельца: 3 дня DRY_RUN, разметка ≥30, `make eval CONTEXT=relevance` + сравнение Flash-Lite vs Flash, явное включение DRY_RUN=false
+- [x] T119 [R-E1] Раннер `relevance` (`eval/runners/relevance.py` + диспетчер в `run.py`): precision/recall/F1 с порогами 0.7 как assertions; `EVAL_FAKE=1` — режим стаба для CI; `MODEL_B=` для сравнения (отчёт с ΔF1, вердикт по |ΔF1| ≤ 0.05)
+- [x] T120 Квикстарт/спека/PLAN обновлены под email-источник (пересмотр 2026-07-17); `make lint`+`make test` зелёные; прод боевой с 2026-07-20
+- [ ] T121 🖐 Ручная фаза владельца: разметка ≥30 реальных вакансий 👍/👎, `make eval CONTEXT=relevance MODEL_B=google/gemini-2.5-flash` (Flash-Lite vs Flash). _DRY_RUN=false уже включён на проде 2026-07-20._
 
 ## Dependencies & Execution Order
 
