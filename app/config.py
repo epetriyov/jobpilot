@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     mail_whitelist_domains_raw: str = Field("", alias="MAIL_WHITELIST_DOMAINS")
     mail_body_limit: int = Field(2000, alias="MAIL_BODY_LIMIT")
 
+    # --- LinkedIn-нетворкинг (этап 3; кредов НЕТ по построению — N1) ---
+    linkedin_companies_raw: str = Field("", alias="LINKEDIN_COMPANIES")
+    linkedin_roles_raw: str = Field("CTO;CPO;HRBP;Senior IT Recruiter", alias="LINKEDIN_ROLES")
+    invites_cron: str = Field("0 11 * * 1", alias="INVITES_CRON")
+    invites_remind_days: int = Field(3, alias="INVITES_REMIND_DAYS")
+
     # --- HH (этап 1; пересмотр 2026-07-17: email HH-подписки + userbot + web, API нет) ---
     hh_sources_raw: str = Field("email", alias="HH_SOURCES")
     hh_email_since_hours: int = Field(48, alias="HH_EMAIL_SINCE_HOURS")
@@ -111,6 +117,14 @@ class Settings(BaseSettings):
     @property
     def mail_whitelist_domains(self) -> tuple[str, ...]:
         return tuple(d.strip() for d in self.mail_whitelist_domains_raw.split(";") if d.strip())
+
+    @property
+    def linkedin_companies(self) -> list[str]:
+        return [c.strip() for c in self.linkedin_companies_raw.split(";") if c.strip()]
+
+    @property
+    def linkedin_roles(self) -> list[str]:
+        return [r.strip() for r in self.linkedin_roles_raw.split(";") if r.strip()]
 
     # --- LLM (модели per-purpose — свап без кода, PLAN.md §2) ---
     llm_base_url: str = Field("https://openrouter.ai/api/v1", alias="LLM_BASE_URL")

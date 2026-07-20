@@ -17,10 +17,13 @@ from app.adapters.persistence.models import (
     InboxMessageRow,
     JobRun,
     LabeledVacancy,
+    LinkedInTarget,
     LlmCall,
     SeenVacancy,
 )
 from app.domain.correspondence import InboxMessage as InboxMessageDTO
+from app.domain.networking import InviteDraft as InviteDraftDTO
+from app.domain.networking import InviteStatus
 from app.domain.relevance import Score, VacancySnapshot
 from app.domain.shared import Source, SourceRef
 from app.domain.sourcing import Vacancy, content_hash
@@ -330,3 +333,76 @@ class InboxMessageRepository:
                 )
             )
         return sections
+
+
+class InviteRepository:
+    """Реализация InviteRepositoryPort (linkedin_target, этап 3)."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def active_pairs(self) -> set[tuple[str, str]]:
+        result = await self._session.execute(
+            select(LinkedInTarget.company, LinkedInTarget.title).where(
+                LinkedInTarget.status != "accepted"
+            )
+        )
+        return {(row.company, row.title) for row in result}
+
+    async def add(self, draft: InviteDraftDTO) -> int:
+        row = LinkedInTarget(
+            title=draft.title,
+            company=draft.company,
+            search_url=draft.search_url,
+            invite_text=draft.invite_text,
+            status=str(draft.status),
+        )
+        self._session.add(row)
+        await self._session.flush()
+        return row.id
+
+    async def get(self, invite_id: int) -> InviteDraftDTO | None:
+        row = await self._session.get(LinkedInTarget, invite_id)
+        return self._to_domain(row) if row else None
+
+    async def save(self, invite_id: int, draft: InviteDraftDTO) -> None:
+        await self._session.execute(
+            update(LinkedInTarget)
+            .where(LinkedInTarget.id == invite_id)
+            .values(status=str(draft.status), sent_at=draft.sent_at, accepted_at=draft.accepted_at)
+        )
+
+    async def pending(self) -> list[tuple[int, InviteDraftDTO]]:
+        result = await self._session.execute(
+            select(LinkedInTarget)
+            .where(LinkedInTarget.status == "proposed")
+            .order_by(LinkedInTarget.created_at.asc())
+        )
+        return [(row.id, self._to_domain(row)) for row in result.scalars()]
+
+    async def pending_older_than(self, days: int) -> list[tuple[int, InviteDraftDTO]]:
+        cutoff = datetime.now(UTC) - timedelta(days=days)
+        result = await self._session.execute(
+            select(LinkedInTarget)
+            .where(LinkedInTarget.status == "proposed")
+            .where(LinkedInTarget.created_at < cutoff)
+        )
+        return [(row.id, self._to_domain(row)) for row in result.scalars()]
+
+    async def counts(self) -> dict[str, int]:
+        result = await self._session.execute(
+            select(LinkedInTarget.status, func.count()).group_by(LinkedInTarget.status)
+        )
+        return {row[0]: row[1] for row in result}
+
+    @staticmethod
+    def _to_domain(row: LinkedInTarget) -> InviteDraftDTO:
+        return InviteDraftDTO(
+            title=row.title,
+            company=row.company,
+            search_url=row.search_url,
+            invite_text=row.invite_text,
+            status=InviteStatus(row.status),
+            sent_at=row.sent_at,
+            accepted_at=row.accepted_at,
+        )

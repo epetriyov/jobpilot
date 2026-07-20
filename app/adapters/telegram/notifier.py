@@ -4,8 +4,13 @@ from __future__ import annotations
 
 from aiogram import Bot
 
-from app.adapters.telegram.cards import build_card_keyboard, render_card_text
-from app.ports.notifier import DigestCard, PublishOutcome
+from app.adapters.telegram.cards import (
+    build_card_keyboard,
+    build_invite_keyboard,
+    render_card_text,
+    render_invite_text,
+)
+from app.ports.notifier import DigestCard, InviteCard, PublishOutcome
 
 
 class TelegramNotifier:
@@ -27,6 +32,15 @@ class TelegramNotifier:
             render_card_text(card),
             parse_mode="HTML",
             reply_markup=build_card_keyboard(card),
+            disable_web_page_preview=True,
+        )
+
+    async def send_invite_card(self, card: InviteCard) -> None:
+        await self._bot.send_message(
+            self._owner,
+            render_invite_text(card),
+            parse_mode="HTML",
+            reply_markup=build_invite_keyboard(card),
             disable_web_page_preview=True,
         )
 
