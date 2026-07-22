@@ -1,0 +1,58 @@
+name: Image
+
+# Сборка Docker-образа в CI (у раннера много RAM) и публикация в GHCR.
+# Цель: VPS больше НЕ собирает образ (1 GB без swap → OOM, docs/INFRA.md §5.2) —
+# на проде только `docker compose pull`. Один образ обслуживает bot и worker
+# (одинаковый Dockerfile, разный command).
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          # INSTALL_BROWSERS=false: email-источник HH браузера не требует.
+          # Для этапа 5 (Playwright) добавить отдельный тег с build-arg=true.
+          build-args: |
+            INSTALL_BROWSERS=false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

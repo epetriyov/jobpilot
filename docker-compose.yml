@@ -43,6 +43,9 @@ services:
     # внутри сети compose (bot, worker, userbot), снаружи VPS порты закрыты.
 
   bot:
+    # JOBPILOT_IMAGE задан (прод) → `docker compose pull` берёт готовый образ из GHCR
+    # (VPS не собирает, docs/INFRA.md §5.2). Не задан (dev) → локальная сборка `build:`.
+    image: ${JOBPILOT_IMAGE:-jobpilot:local}
     build:
       context: .
       args:
@@ -67,6 +70,7 @@ services:
     restart: unless-stopped
 
   worker:
+    image: ${JOBPILOT_IMAGE:-jobpilot:local}  # тот же образ, что и bot (см. выше)
     build:
       context: .
       args:

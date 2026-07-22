@@ -92,9 +92,27 @@
    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
    sudo sysctl -w vm.swappiness=10   # своп только под реальным давлением
    ```
-2. **Собирать образы вне бокса.** У проекта уже есть GitHub Actions: собирать в CI →
-   пушить в GHCR → на VPS только `docker pull` + `up -d`. Это убирает **самый крупный
-   пик памяти** насовсем; VPS перестаёт быть машиной сборки.
+2. **Собирать образы вне бокса — СДЕЛАНО (workflow + compose).** `docker build` (самый
+   крупный пик RAM) вынесен в CI:
+   - `.github/workflows/image.yml` — на push в main и на теги собирает образ на
+     GitHub-раннере и пушит в `ghcr.io/epetriyov/jobpilot` (теги `main`, `sha-…`,
+     `vX.Y.Z`, `latest`). Один образ на bot и worker.
+   - `docker-compose.yml` — bot/worker: `image: ${JOBPILOT_IMAGE:-jobpilot:local}`
+     (прод тянет из GHCR, dev собирает локально как раньше).
+   - `.github/workflows/deploy.yml` — по тегу: SSH на VPS → `docker compose pull` +
+     `up -d --no-build` + миграции. **VPS больше не собирает.**
+
+   **Разовая настройка владельцем (обязательна для приватного пакета):**
+   1. Settings → Actions → General → Workflow permissions → **Read and write** (чтобы
+      `GITHUB_TOKEN` мог пушить в GHCR).
+   2. Первый деплой — тегом: `git tag v0.1.0 && git push origin v0.1.0`. Image-workflow
+      соберёт и опубликует образ, deploy-workflow дождётся его и выкатит.
+   3. Права на пакет GHCR: убедиться, что у репозитория есть доступ к своему package
+      (Package settings → Manage Actions access → добавить репозиторий с ролью Write,
+      если не подтянулось автоматически).
+
+   До первого тега прод можно обновлять как сейчас (`git pull` + локальная пересборка),
+   но именно она и вызывает thrash — поэтому перейти на теги при первой возможности.
 3. **Проставить лимиты памяти в compose** — чтобы JobPilot не ронял сайт и билеты:
    ```yaml
    deploy:
