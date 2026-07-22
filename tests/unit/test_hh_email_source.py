@@ -66,6 +66,10 @@ class TestIsVacancyEmail:
     def test_subscription_subject(self) -> None:
         assert is_hh_vacancy_email("noreply@hh.ru", "Вакансии по подписке: Все вакансии")
         assert is_hh_vacancy_email('"hh.ru" <noreply@hh.ru>', "Новые вакансии по запросу")
+        # формат HH менялся (2026-07): «Подходящие вакансии для резюме …» — тоже подборка
+        assert is_hh_vacancy_email(
+            '"hh.ru" <noreply@hh.ru>', "Подходящие вакансии для резюме: «Head Of Development»"
+        )
 
     def test_non_vacancy_hh_email(self) -> None:
         assert not is_hh_vacancy_email("noreply@hh.ru", "Вчера ваше резюме привлекло внимание")
