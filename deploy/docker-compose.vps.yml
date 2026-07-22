@@ -6,6 +6,12 @@
 # Подключение на VPS — одной строкой в /opt/jobpilot/.env:
 #   COMPOSE_FILE=docker-compose.yml:deploy/docker-compose.vps.yml
 # после чего обычные `docker compose up -d` / deploy.yml работают без изменений.
+#
+# Лимиты памяти (docs/INFRA.md §5.3): бокс 1 GB на три проекта без swap — без
+# лимитов рантайм-утечка в одном сервисе роняет соседей (сайт, билеты). mem_limit
+# ограничивает ТОЛЬКО рантайм контейнеров (не `docker build` — тот фиксится сборкой
+# в CI, §5.2). Значения — с запасом над измеренным RSS: OOM-kill без swap мгновенный,
+# поэтому лимит держим выше пиков, а не впритык. Пересмотреть при апгрейде RAM.
 
 services:
   alloy:
@@ -19,3 +25,17 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/host/root:ro,rslave
+    mem_limit: 160m          # измерено ~70 MiB
+    mem_reservation: 96m
+
+  db:
+    mem_limit: 384m          # shared_buffers 128M + connections + overhead
+    mem_reservation: 192m
+
+  bot:
+    mem_limit: 320m          # измерено ~172 MiB
+    mem_reservation: 192m
+
+  worker:
+    mem_limit: 448m          # измерено ~174 MiB; пик выше на дайджесте (LLM+парс писем)
+    mem_reservation: 224m
