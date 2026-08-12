@@ -41,7 +41,8 @@ async def cmd_start(message: Message) -> None:
         "JobPilot на связи. Команды:\n"
         "/digest — дайджест вакансий сейчас\n"
         "/saved — сохранённые заявки (CRM) и их статусы\n"
-        "/iv <id> <ссылка> | <заметка> — детали собеса к заявке\n"
+        "/iv <id> <ссылка> | <заметка> — детали собеса к заявке (вручную)\n"
+        "/hr <id> <текст HR> — извлечь детали собеса из сообщения рекрутёра\n"
         "/train — прогресс разметки 👍/👎\n"
         "/publish — поднять резюме\n"
         "/invites — пакет инвайтов LinkedIn\n"
@@ -189,6 +190,45 @@ async def cmd_iv(message: Message, services: Services) -> None:
         await message.answer("Заявка не найдена — сначала 💾 Сохранить вакансию.")
     else:
         await message.answer("Записал детали собеса ➕ (статус не менял).")
+
+
+@router.message(Command("hr"))
+async def cmd_hr(message: Message, services: Services) -> None:
+    """US3 (LLM-путь, [C-U5]): «➕ собес» из HR-сообщения — авто-извлечение деталей.
+
+    Форматы:
+      /hr <id> <текст сообщения HR>
+      /hr <id>  — в ответ (reply) на пересланное HR-сообщение (текст берётся из reply)
+    Статус заявки НИКОГДА не меняется (C3). Невалидно/пусто → фолбэк на ручной /iv.
+    """
+    parts = (message.text or "").split(maxsplit=2)
+    if len(parts) < 2:
+        await message.answer("Формат: /hr <id вакансии> <текст HR> или /hr <id> в ответ на письмо.")
+        return
+    try:
+        vacancy_id = int(parts[1])
+    except ValueError:
+        await message.answer("id вакансии должен быть числом.")
+        return
+    inline = parts[2].strip() if len(parts) == 3 else ""
+    replied = (message.reply_to_message.text or "") if message.reply_to_message else ""
+    hr_text = inline or replied.strip()
+    if not hr_text:
+        await message.answer(
+            f"Формат: /hr {vacancy_id} <текст HR> или пришли /hr {vacancy_id} в ответ на письмо."
+        )
+        return
+
+    result = await services.extract_hr_details(vacancy_id, message_text=hr_text)
+    manual_hint = f"Введи вручную: /iv {vacancy_id} <ссылка> | <заметка>"
+    if result.status == "extracted":
+        detail = result.notes or result.url or ""
+        suffix = f"\n{detail}" if detail else ""
+        await message.answer(f"Извлёк детали собеса ➕ (статус не менял).{suffix}")
+    elif result.status in ("empty", "llm_failed"):
+        await message.answer(f"Не смог извлечь детали автоматически. {manual_hint}")
+    else:  # not_found
+        await message.answer("Заявка не найдена — сначала 💾 Сохранить вакансию.")
 
 
 async def _dispatch_crm(services: Services, cb: CrmCallback) -> str:

@@ -43,6 +43,8 @@ THRESHOLDS: dict[str, float] = {
     # cover_letter ([M-E2]): hallucinations=0 (блокер) И рубрика pass-rate ≥0.9 —
     # проверяется отдельно (не pass-rate по датасету).
     "cover_letter": 0.9,
+    # hr_extract ([C-E1]): accuracy по дате И по ссылке ≥0.9 — проверяется отдельно.
+    "hr_extract": 0.9,
 }
 
 
@@ -367,6 +369,68 @@ async def evaluate_cover_letter() -> int:
     return 0 if m.ok else 1
 
 
+async def evaluate_hr_extract() -> int:
+    """[C-E1] Контекст hr_extract: accuracy по дате И ссылке ≥0.9. Возврат — код выхода."""
+    from eval.runners.hr_extract import _Recorder as HrRecorder
+    from eval.runners.hr_extract import extract_dataset
+
+    version, path = latest_version("hr_extract")
+    examples = load(path)
+    settings = Settings.load()
+    use_real = settings.resolved_llm_mode() == "real" and os.environ.get("EVAL_FAKE") != "1"
+
+    rec = HrRecorder()
+    m = await extract_dataset(examples, recorder=rec, use_real=use_real, settings=settings)
+    report = _write_hr_report(version, use_real, m, rec.records)
+    print(
+        f"[eval:hr_extract] model={m.model} "
+        f"date_accuracy={m.date_accuracy:.3f} url_accuracy={m.url_accuracy:.3f} "
+        f"({m.evaluable}/{m.total} оценено; llm_errors={m.llm_errors}) "
+        f"-> {'PASS' if m.ok else 'FAIL'}\nreport: {report.relative_to(ROOT)}"
+    )
+    return 0 if m.ok else 1
+
+
+def _write_hr_report(version, use_real, m, records) -> Path:  # type: ignore[no-untyped-def]
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y-%m-%d")
+    out = REPORTS / f"hr_extract_{stamp}.md"
+    cost = sum(r.cost_usd for r in records)
+    provider = "real (OpenRouter)" if use_real else "fake (стаб)"
+    date_ok = "✅" if m.date_accuracy >= 0.9 else "❌"
+    url_ok = "✅" if m.url_accuracy >= 0.9 else "❌"
+    status = "✅ PASS" if m.ok else "❌ FAIL"
+    lines = [
+        f"# Eval report: hr_extract ({version})",
+        "",
+        f"- **Дата**: {stamp} · **Провайдер**: {provider} · **Сообщений**: {m.total}",
+        "- **Критерий [C-E1]**: accuracy по дате И по ссылке ≥0.9",
+        f"- **Модель**: {m.model} · **Стоимость прогона**: ${cost:.6f}",
+        "",
+        "| date accuracy | url accuracy | date correct | url correct | оценено | llm_errors |",
+        "|---|---|---|---|---|---|",
+        f"| {date_ok} {m.date_accuracy:.3f} | {url_ok} {m.url_accuracy:.3f} "
+        f"| {m.date_correct} | {m.url_correct} | {m.evaluable}/{m.total} | {m.llm_errors} |",
+        "",
+        f"**Статус**: {status}",
+    ]
+    if not use_real:
+        lines += [
+            "",
+            "> ⚠️ fake-режим: стаб детерминированно парсит дату/ссылку из текста — метрики "
+            "воспроизводимы (accuracy 1.0 на согласованном датасете). Содержательная "
+            "проверка извлечения — на real (OpenRouter) после кредов.",
+        ]
+    if m.llm_errors:
+        lines += [
+            "",
+            f"> ⚠️ Модель не отдала валидную схему за {m.llm_errors} сообщение(й) даже с "
+            "ретраями — исключены из знаменателя.",
+        ]
+    out.write_text("\n".join(lines) + "\n")
+    return out
+
+
 def _write_cover_report(version, use_real, m, records) -> Path:  # type: ignore[no-untyped-def]
     REPORTS.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y-%m-%d")
@@ -604,6 +668,9 @@ async def main() -> None:
 
     if args.context == "cover_letter":
         raise SystemExit(await evaluate_cover_letter())
+
+    if args.context == "hr_extract":
+        raise SystemExit(await evaluate_hr_extract())
 
     if args.context == "sites_parse":
         raise SystemExit(evaluate_sites_parse())

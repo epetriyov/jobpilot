@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 from collections.abc import Callable, Sequence
 
@@ -215,6 +216,84 @@ def stub_letter_response(data: str) -> str:
         f"Готов обсудить, чем этот опыт полезен вашей команде."
     )
     return json.dumps({"text": text[:2000]}, ensure_ascii=False)
+
+
+_RU_MONTHS: dict[str, int] = {
+    "январ": 1,
+    "феврал": 2,
+    "март": 3,
+    "апрел": 4,
+    "мая": 5,
+    "май": 5,
+    "июн": 6,
+    "июл": 7,
+    "август": 8,
+    "сентябр": 9,
+    "октябр": 10,
+    "ноябр": 11,
+    "декабр": 12,
+}
+_URL_RE = re.compile(r"https?://[^\s<>()]+", re.IGNORECASE)
+_ISO_RE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
+_DOTTED_RE = re.compile(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b")
+_RU_DATE_RE = re.compile(
+    r"\b(\d{1,2})\s+"
+    r"(январ\w*|феврал\w*|март\w*|апрел\w*|ма[йя]\w*|июн\w*|июл\w*|август\w*|"
+    r"сентябр\w*|октябр\w*|ноябр\w*|декабр\w*)"
+    r"(?:\s+(\d{4}))?",
+    re.IGNORECASE,
+)
+
+
+def _extract_url(text: str) -> str | None:
+    m = _URL_RE.search(text)
+    if m is None:
+        return None
+    return m.group(0).rstrip(".,;)")
+
+
+def _extract_date(text: str) -> str | None:
+    """Детерминированный парс даты (ISO / ДД.ММ.ГГГГ / «20 августа [2026]»)→ ISO-строка.
+
+    Русская дата без года требует явного года в тексте (детерминизм eval: без
+    «текущего года»). Первое совпадение выигрывает.
+    """
+    iso = _ISO_RE.search(text)
+    if iso:
+        return f"{iso.group(1)}-{iso.group(2)}-{iso.group(3)}"
+    dotted = _DOTTED_RE.search(text)
+    if dotted:
+        day, month, year = (int(dotted.group(i)) for i in (1, 2, 3))
+        return f"{year:04d}-{month:02d}-{day:02d}"
+    ru = _RU_DATE_RE.search(text)
+    if ru and ru.group(3):
+        ru_day = int(ru.group(1))
+        month_word = ru.group(2).lower()
+        ru_year = int(ru.group(3))
+        ru_month = next(
+            (num for stem, num in _RU_MONTHS.items() if month_word.startswith(stem)), None
+        )
+        if ru_month is not None:
+            return f"{ru_year:04d}-{ru_month:02d}-{ru_day:02d}"
+    return None
+
+
+def stub_hr_response(data: str) -> str:
+    """Детерминированный мок извлечения деталей собеса (LLM_MODE=fake, этап 6G).
+
+    Парсит дату (ISO/ДД.ММ.ГГГГ/русский месяц с годом) и первую ссылку из текста
+    HR-сообщения; суть (gist) — первая содержательная строка ≤200 знаков. Полностью
+    детерминирован по тексту → eval hr_extract в fake воспроизводим (accuracy 1.0
+    на согласованном датасете). Статус заявки не трогает (C3).
+    """
+    url = _extract_url(data)
+    iso_date = _extract_date(data)
+    first_line = next(
+        (line.strip() for line in data.splitlines() if line.strip()),
+        "",
+    )
+    gist = first_line[:200]
+    return json.dumps({"date": iso_date, "url": url, "gist": gist}, ensure_ascii=False)
 
 
 def _build_messages(
