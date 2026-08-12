@@ -52,7 +52,8 @@ def test_upgrade_is_idempotent(pg_url: str, alembic_config) -> None:
 def test_downgrade_drops_index(pg_url: str, alembic_config) -> None:
     from alembic import command
 
-    command.upgrade(alembic_config, "head")
+    # апгрейд ровно до 0009 (в цепочке этапа 6 поверх идут 0010+): downgrade -1 → 0008
+    command.upgrade(alembic_config, "0009_stage6d")
     assert _index_meta(pg_url) is not None
 
     command.downgrade(alembic_config, "-1")

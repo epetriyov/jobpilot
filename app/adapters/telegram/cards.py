@@ -9,7 +9,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.adapters.telegram.crm_cards import build_save_button
 from app.domain.relevance import Verdict
-from app.ports.notifier import DigestCard, InviteCard
+from app.ports.notifier import CoverLetterCard, DigestCard, InviteCard
 
 
 def build_card_keyboard(card: DigestCard) -> InlineKeyboardMarkup:
@@ -73,4 +73,48 @@ def parse_invite_callback(data: str) -> tuple[str, int]:
     parts = data.split(":", 2)
     if len(parts) != 3 or parts[0] != "inv" or parts[1] not in ("sent", "accepted"):
         raise ValueError(f"не invite-callback: {data!r}")
+    return parts[1], int(parts[2])
+
+
+# --- сопроводительные письма (этап 6E) ---
+
+_COVER_ACTIONS = ("new", "regen", "edit")
+
+
+def build_cover_entry_button(vacancy_id: int) -> InlineKeyboardButton:
+    """Кнопка «✉️ письмо» для карточки вакансии (её встраивает CRM-карточка 6B)."""
+    return InlineKeyboardButton(text="✉️ письмо", callback_data=f"cover:new:{vacancy_id}")
+
+
+def build_cover_keyboard(card: CoverLetterCard) -> InlineKeyboardMarkup:
+    """Кнопки письма: 🔁 (перегенерировать) / ✏️ (правка). Отправка — вручную (M3/VI)."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🔁 Перегенерировать",
+                    callback_data=f"cover:regen:{card.vacancy_id}",
+                ),
+                InlineKeyboardButton(
+                    text="✏️ Править", callback_data=f"cover:edit:{card.vacancy_id}"
+                ),
+            ]
+        ]
+    )
+
+
+def render_cover_text(card: CoverLetterCard) -> str:
+    """Текст письма в чате: заголовок + тело в <code> (удобно скопировать и отправить)."""
+    return (
+        f"✉️ <b>{card.title}</b> — {card.company}\n"
+        f"<i>Отправьте письмо вручную; правки — ✏️, новая версия — 🔁.</i>\n\n"
+        f"<code>{card.text}</code>"
+    )
+
+
+def parse_cover_callback(data: str) -> tuple[str, int]:
+    """`cover:regen:7` → ("regen", 7); мусор → ValueError."""
+    parts = data.split(":", 2)
+    if len(parts) != 3 or parts[0] != "cover" or parts[1] not in _COVER_ACTIONS:
+        raise ValueError(f"не cover-callback: {data!r}")
     return parts[1], int(parts[2])

@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.persistence.models import (
     ApplicationRow,
+    CoverLetterRow,
     InboxMessageRow,
     InterviewRoundRow,
     JobRun,
@@ -24,6 +25,7 @@ from app.adapters.persistence.models import (
     ScraperApproval,
 )
 from app.adapters.persistence.models import Vacancy as VacancyRow
+from app.domain.correspondence import CoverLetter as CoverLetterDTO
 from app.domain.correspondence import InboxMessage as InboxMessageDTO
 from app.domain.crm import (
     Application,
@@ -662,4 +664,38 @@ class ApplicationRepository:
             reject_stage=RejectStage(row.reject_stage) if row.reject_stage else None,
             interview_url=row.interview_url,
             notes=row.notes,
+        )
+
+
+class CoverLetterRepository:
+    """История сопроводительных писем (data-model §4, этап 6E).
+
+    🔁/✏️ добавляют новую строку; `latest` — самая свежая версия для вакансии.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, letter: CoverLetterDTO) -> int:
+        row = CoverLetterRow(
+            vacancy_id=letter.vacancy_id,
+            text=letter.text,
+            prompt_version=letter.prompt_version,
+        )
+        self._session.add(row)
+        await self._session.flush()
+        return row.id
+
+    async def latest(self, vacancy_id: int) -> CoverLetterDTO | None:
+        result = await self._session.execute(
+            select(CoverLetterRow)
+            .where(CoverLetterRow.vacancy_id == vacancy_id)
+            .order_by(CoverLetterRow.created_at.desc(), CoverLetterRow.id.desc())
+            .limit(1)
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            return None
+        return CoverLetterDTO(
+            vacancy_id=row.vacancy_id, text=row.text, prompt_version=row.prompt_version
         )

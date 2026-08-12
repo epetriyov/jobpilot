@@ -6,11 +6,13 @@ from aiogram import Bot
 
 from app.adapters.telegram.cards import (
     build_card_keyboard,
+    build_cover_keyboard,
     build_invite_keyboard,
     render_card_text,
+    render_cover_text,
     render_invite_text,
 )
-from app.ports.notifier import DigestCard, InviteCard, PublishOutcome
+from app.ports.notifier import CoverLetterCard, DigestCard, InviteCard, PublishOutcome
 
 
 class TelegramNotifier:
@@ -41,6 +43,15 @@ class TelegramNotifier:
             render_invite_text(card),
             parse_mode="HTML",
             reply_markup=build_invite_keyboard(card),
+            disable_web_page_preview=True,
+        )
+
+    async def send_cover_letter_card(self, card: CoverLetterCard) -> None:
+        await self._bot.send_message(
+            self._owner,
+            render_cover_text(card),
+            parse_mode="HTML",
+            reply_markup=build_cover_keyboard(card),
             disable_web_page_preview=True,
         )
 

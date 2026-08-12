@@ -50,6 +50,7 @@ class InstructorOpenRouterLlm:
             "scoring": settings.llm_model_scoring,
             "summary": settings.llm_model_summary,
             "letter": settings.llm_model_letters,
+            "cover": settings.llm_model_letters,  # письма 6E — Pro (LLM_MODEL_LETTERS)
             "invite": settings.llm_model_invite,
             "judge": settings.llm_model_judge,
         }

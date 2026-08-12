@@ -40,6 +40,21 @@ class InviteCard(BaseModel):
     status: str
 
 
+class CoverLetterCard(BaseModel):
+    """Карточка сопроводительного письма (UI, этап 6E): текст + кнопки 🔁/✏️.
+
+    Отправку письма делает человек вручную (система не отправляет, M3/VI).
+    Тело письма — данные владельца; не логируется (M4).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    vacancy_id: int
+    title: str
+    company: str
+    text: str
+
+
 class NotifierPort(Protocol):
     async def send_digest(self, text: str) -> None: ...
 
@@ -51,6 +66,10 @@ class NotifierPort(Protocol):
 
     async def send_invite_card(self, card: InviteCard) -> None:
         """Карточка инвайта с кнопками статуса (этап 3)."""
+        ...
+
+    async def send_cover_letter_card(self, card: CoverLetterCard) -> None:
+        """Карточка письма с кнопками 🔁 (перегенерировать) / ✏️ (правка) — этап 6E."""
         ...
 
 

@@ -4,19 +4,33 @@ from __future__ import annotations
 
 from aiogram import F, Router
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
-from app.adapters.telegram.cards import parse_invite_callback, parse_label_callback
+from app.adapters.telegram.cards import (
+    parse_cover_callback,
+    parse_invite_callback,
+    parse_label_callback,
+)
 from app.adapters.telegram.crm_cards import (
     CrmCallback,
     build_saved_keyboard,
     parse_crm_callback,
     render_saved_text,
 )
+from app.domain.correspondence import COVER_LETTER_MAX_CHARS
 from app.domain.crm import ApplicationStatus, InterviewRoundKind, RejectStage
 from app.runtime.composition import Services
 
 router = Router()
+
+
+class CoverEdit(StatesGroup):
+    """FSM ручной правки письма (✏️): ждём исправленный текст от владельца."""
+
+    waiting_text = State()
+
 
 TRAIN_GOAL = 30  # цель разметки этапа 1 ([R-E1])
 
@@ -218,6 +232,50 @@ async def on_crm(callback: CallbackQuery, services: Services) -> None:
         await callback.answer()
         return
     await callback.answer(await _dispatch_crm(services, cb))
+
+
+@router.callback_query(F.data.startswith("cover:"))
+async def on_cover(callback: CallbackQuery, services: Services, state: FSMContext) -> None:
+    """✉️/🔁/✏️: генерация письма Pro по вакансии; отправку делает владелец вручную."""
+    try:
+        action, vacancy_id = parse_cover_callback(callback.data or "")
+    except ValueError:
+        await callback.answer()
+        return
+
+    if action == "edit":
+        await state.set_state(CoverEdit.waiting_text)
+        await state.update_data(vacancy_id=vacancy_id)
+        await callback.answer()
+        await callback.message.answer(  # type: ignore[union-attr]
+            "✏️ Пришлите исправленный текст письма ответным сообщением "
+            f"(до {COVER_LETTER_MAX_CHARS} знаков)."
+        )
+        return
+
+    await callback.answer("Генерирую письмо…" if action == "new" else "Перегенерирую…")
+    result = await services.generate_cover_letter(vacancy_id)
+    if result.status == "generated":
+        return  # карточка письма уже отправлена use case'ом
+    # not_found / llm_failed — use case уже уведомил владельца
+
+
+@router.message(CoverEdit.waiting_text)
+async def on_cover_edit_text(message: Message, services: Services, state: FSMContext) -> None:
+    """Ручная правка письма: сохраняем присланный текст как новую версию (data-model §4)."""
+    text = (message.text or "").strip()
+    if not text:
+        await message.answer("Пустой текст — правка не сохранена. Пришлите текст письма.")
+        return
+    if len(text) > COVER_LETTER_MAX_CHARS:
+        await message.answer(
+            f"Слишком длинно ({len(text)} > {COVER_LETTER_MAX_CHARS}). Сократите и пришлите снова."
+        )
+        return
+    data = await state.get_data()
+    vacancy_id = int(data["vacancy_id"])
+    await state.clear()
+    await services.save_cover_edit(vacancy_id, text)
 
 
 @router.callback_query()

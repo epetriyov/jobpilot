@@ -171,6 +171,26 @@ class ScraperApproval(Base):
     approved_by_chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
 
+class CoverLetterRow(Base):
+    """Сопроводительное письмо (этап 6E): версии на вакансию, последняя — актуальная.
+
+    Тело письма — данные владельца в его БД (нужно для 🔁/✏️ и истории), не лог (M4).
+    """
+
+    __tablename__ = "cover_letter"
+    __table_args__ = (CheckConstraint("char_length(text) <= 2000", name="ck_cover_letter_len"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    vacancy_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("vacancy.id"), nullable=False, index=True
+    )
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    prompt_version: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class LinkedInTarget(Base):
     """Заготовка инвайта (этап 3): роль+компания+ссылка+текст; ПД адресата нет (N1)."""
 

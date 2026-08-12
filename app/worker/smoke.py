@@ -14,7 +14,7 @@ from app.application.smoke_pipeline import RunSmokePipeline
 from app.config import Settings
 from app.obs.logging import configure_logging
 from app.obs.telemetry import setup_telemetry
-from app.ports.notifier import DigestCard, InviteCard, PublishOutcome
+from app.ports.notifier import CoverLetterCard, DigestCard, InviteCard, PublishOutcome
 from app.worker.fixtures import sample_hh
 
 log = structlog.get_logger("worker.smoke")
@@ -32,6 +32,9 @@ class StdoutNotifier:
 
     async def send_invite_card(self, card: InviteCard) -> None:
         print(f"[invite] {card.title} @ {card.company}")
+
+    async def send_cover_letter_card(self, card: CoverLetterCard) -> None:
+        print(f"[cover] {card.title} — {card.company}")
 
 
 class NullPublisher:

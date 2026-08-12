@@ -40,6 +40,9 @@ THRESHOLDS: dict[str, float] = {
     "invite_rubric": 0.9,
     # relevance_selectors ([R-E2]): относительный порог — agreement(semantic) ≥ agreement(recent).
     "relevance_selectors": 0.0,
+    # cover_letter ([M-E2]): hallucinations=0 (блокер) И рубрика pass-rate ≥0.9 —
+    # проверяется отдельно (не pass-rate по датасету).
+    "cover_letter": 0.9,
 }
 
 
@@ -339,6 +342,73 @@ async def evaluate_invite_rubric() -> int:
     return 0 if ok else 1
 
 
+async def evaluate_cover_letter() -> int:
+    """[M-E2] Контекст cover_letter: hallucinations=0 (блокер) И рубрика ≥0.9. Возврат — код."""
+    from eval.runners.cover_letter import _Recorder as CoverRecorder
+    from eval.runners.cover_letter import judge_dataset
+
+    version, path = latest_version("cover_letter")
+    examples = load(path)
+    settings = Settings.load()
+    use_real = settings.resolved_llm_mode() == "real" and os.environ.get("EVAL_FAKE") != "1"
+
+    rec = CoverRecorder()
+    m = await judge_dataset(examples, recorder=rec, use_real=use_real, settings=settings)
+    report = _write_cover_report(version, use_real, m, rec.records)
+    blocker = "" if m.hallucination_count == 0 else f"  ⛔ hallucinations={m.hallucination_count}"
+    print(
+        f"[eval:cover_letter] gen={m.gen_model} judge={m.judge_model} "
+        f"hallucinations={m.hallucination_count} (в {m.examples_with_hallucinations} письмах) "
+        f"rubric_pass_rate={m.rubric_pass_rate:.3f} ({m.passed}/{m.evaluable} оценённых; "
+        f"fail: len={m.fail_length} addr={m.fail_addresses} rubric={m.fail_rubric}; "
+        f"judge_errors={m.judge_errors}) -> {'PASS' if m.ok else 'FAIL'}{blocker}\n"
+        f"report: {report.relative_to(ROOT)}"
+    )
+    return 0 if m.ok else 1
+
+
+def _write_cover_report(version, use_real, m, records) -> Path:  # type: ignore[no-untyped-def]
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y-%m-%d")
+    out = REPORTS / f"cover_letter_{stamp}.md"
+    cost = sum(r.cost_usd for r in records)
+    provider = "real (OpenRouter)" if use_real else "fake (стаб)"
+    hall_ok = "✅" if m.hallucination_count == 0 else "❌"
+    rubric_ok = "✅" if m.rubric_pass_rate >= 0.9 else "❌"
+    status = "✅ PASS" if m.ok else "❌ FAIL"
+    lines = [
+        f"# Eval report: cover_letter ({version})",
+        "",
+        f"- **Дата**: {stamp} · **Провайдер**: {provider} · **Вакансий**: {m.total}",
+        "- **Критерий [M-E2]**: hallucinations=0 (блокер) И рубрика pass-rate ≥0.9 "
+        "(обращение к вакансии, ≥1 метрика из резюме, ≤2000, без канцелярита)",
+        f"- **Генератор**: {m.gen_model} · **Судья**: {m.judge_model} · **Стоимость**: ${cost:.6f}",
+        "",
+        "| hallucinations | письма с галлюц. | rubric pass-rate | passed | оценено "
+        "| fail(len) | fail(addr) | fail(rubric) | judge_errors |",
+        "|---|---|---|---|---|---|---|---|---|",
+        f"| {hall_ok} {m.hallucination_count} | {m.examples_with_hallucinations} "
+        f"| {rubric_ok} {m.rubric_pass_rate:.3f} | {m.passed} | {m.evaluable}/{m.total} "
+        f"| {m.fail_length} | {m.fail_addresses} | {m.fail_rubric} | {m.judge_errors} |",
+        "",
+        f"**Статус**: {status}",
+    ]
+    if m.judge_errors:
+        lines += [
+            "",
+            f"> ⚠️ Судья ({m.judge_model}) не отдал валидную схему за {m.judge_errors} "
+            "письмо(писем) даже с ретраями — исключены из знаменателя.",
+        ]
+    if m.hallucination_count:
+        lines += [
+            "",
+            "> ⛔ Обнаружены неподтверждённые резюме факты — это блокер PR ([M-E2]). "
+            "Усилить промпт cover_v1 (анти-выдумки) и/или поднять модель писем.",
+        ]
+    out.write_text("\n".join(lines) + "\n")
+    return out
+
+
 def _write_invite_report(version, use_real, m, records) -> Path:  # type: ignore[no-untyped-def]
     REPORTS.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y-%m-%d")
@@ -531,6 +601,9 @@ async def main() -> None:
 
     if args.context == "invite_rubric":
         raise SystemExit(await evaluate_invite_rubric())
+
+    if args.context == "cover_letter":
+        raise SystemExit(await evaluate_cover_letter())
 
     if args.context == "sites_parse":
         raise SystemExit(evaluate_sites_parse())

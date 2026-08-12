@@ -188,6 +188,35 @@ def stub_invite_response(data: str) -> str:
     return json.dumps({"text": text[:300]}, ensure_ascii=False)
 
 
+def _field_from_data(data: str, prefix: str, default: str) -> str:
+    return next(
+        (line.split(":", 1)[1].strip() for line in data.splitlines() if line.startswith(prefix)),
+        default,
+    )
+
+
+def stub_letter_response(data: str) -> str:
+    """Детерминированный мок сопроводительного письма (LLM_MODE=fake, этап 6E).
+
+    Все факты — только из резюме EM (research §5); упоминает вакансию/компанию
+    (рубрика eval), содержит 1–2 метрики из резюме, ≤2000 знаков, без канцелярита.
+    """
+    title = _field_from_data(data, "Вакансия:", "вашу вакансию")
+    company = _field_from_data(data, "Компания:", "вашей компании")
+    text = (
+        f"Здравствуйте!\n\n"
+        f"Меня заинтересовала роль «{title}» в {company}. "
+        f"Я инженерный руководитель с 15+ годами в разработке и 10+ годами управления "
+        f"командами.\n\n"
+        f"Релевантный опыт из моего пути в Делимобиле:\n"
+        f"- масштабировал мобильную команду x3 при текучести <10% и eNPS >90%;\n"
+        f"- удержал crash-free на уровне 99% и снизил Tech Debt Index до 10%;\n"
+        f"- внедрил Delivery Flow и CI/CD — 15+ продуктовых релизов в год.\n\n"
+        f"Готов обсудить, чем этот опыт полезен вашей команде."
+    )
+    return json.dumps({"text": text[:2000]}, ensure_ascii=False)
+
+
 def _build_messages(
     system: str, data: str, few_shot: Sequence[tuple[str, str]]
 ) -> list[dict[str, str]]:

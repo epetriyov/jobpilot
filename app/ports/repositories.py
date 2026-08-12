@@ -8,6 +8,7 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domain.correspondence import CoverLetter
 from app.domain.crm import Application
 from app.domain.relevance import LabeledVacancy, Score, VacancySnapshot
 from app.domain.shared import SourceRef
@@ -15,6 +16,7 @@ from app.domain.sourcing import Vacancy
 
 __all__ = [
     "ApplicationRepositoryPort",
+    "CoverLetterRepositoryPort",
     "DigestRepositoryPort",
     "JobRunRepositoryPort",
     "LabelRepositoryPort",
@@ -24,6 +26,7 @@ __all__ = [
     "ScraperApprovalPort",
     "SeenVacancyRepositoryPort",
     "VacancyListFilter",
+    "VacancyReaderPort",
     "VacancyRecord",
     "VacancyRepositoryPort",
 ]
@@ -208,6 +211,27 @@ class ApplicationRepositoryPort(Protocol):
     async def funnel_counts(self) -> dict[str, int]:
         """Воронка по статусам для `/stats` (6C)."""
         ...
+
+
+class VacancyReaderPort(Protocol):
+    """Чтение снапшота вакансии по числовому id — источник фактов для карточек/писем.
+
+    Надстройка над хранилищем vacancy (под-этап 6A `VacancyRepository.get_by_id`);
+    в 6E используется генератором письма. Возвращает None, если вакансии нет.
+    """
+
+    async def get_by_id(self, vacancy_id: int) -> VacancyRecord | None: ...
+
+
+class CoverLetterRepositoryPort(Protocol):
+    """История сопроводительных писем вакансии (data-model §4, под-этап 6E).
+
+    Несколько версий на вакансию: 🔁/✏️ добавляют новую строку, `latest` — актуальная.
+    """
+
+    async def add(self, letter: CoverLetter) -> int: ...
+
+    async def latest(self, vacancy_id: int) -> CoverLetter | None: ...
 
 
 class JobRunRepositoryPort(Protocol):

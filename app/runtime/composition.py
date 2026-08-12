@@ -21,6 +21,7 @@ from app.adapters.hh.fake import FakeHhVacancySource
 from app.adapters.llm.fake import (
     FakeLlm,
     stub_invite_response,
+    stub_letter_response,
     stub_mail_response,
     stub_scoring_response,
 )
@@ -30,6 +31,7 @@ from app.adapters.persistence.database import make_engine, make_session_factory
 from app.adapters.persistence.dataset import JsonlDatasetAppender
 from app.adapters.persistence.repositories import (
     ApplicationRepository,
+    CoverLetterRepository,
     InboxMessageRepository,
     InviteRepository,
     JobRunRepository,
@@ -52,6 +54,7 @@ from app.application.change_status import ChangeApplicationStatus
 from app.application.change_status import Outcome as ChangeOutcome
 from app.application.classify_inbox import ClassifyInbox
 from app.application.fewshot import FewShotSelectorPort, SemanticSelector
+from app.application.generate_cover_letter import GenerateCoverLetter, GenerateCoverLetterResult
 from app.application.job_runner import run_job
 from app.application.label_vacancy import LabelVacancy
 from app.application.publish_resume import PublishResult, PublishResume
@@ -76,9 +79,32 @@ log = structlog.get_logger("runtime.composition")
 SCORING_PROMPT_VERSION = PromptVersion(purpose="scoring", version=1)
 MAIL_PROMPT_VERSION = PromptVersion(purpose="mail_classify", version=1)
 INVITE_PROMPT_VERSION = PromptVersion(purpose="invite", version=2)
+COVER_PROMPT_VERSION = PromptVersion(purpose="cover", version=1)
 RELEVANCE_DATASET = Path("eval/datasets/relevance/v1.jsonl")
 PROFILE_PATH = Path("resumes/resume_em.md")
 PROFILE_LIMIT = 4000
+COVER_GUIDE_PATH = Path("resumes/cover_letter_guide.md")
+COVER_RESUME_LIMIT = 6000
+COVER_GUIDE_LIMIT = 4000
+
+
+def _cover_system_prompt() -> str:
+    """Система-промпт письма: cover_v1 + резюме (источник фактов) + гайд (рекомендации).
+
+    Резюме — единственный источник фактов (анти-галлюцинации, research §5); текст
+    вакансии подаётся отдельно как недоверенные данные (R5, экранируется адаптером).
+    """
+    prompt = load_system_prompt("cover", COVER_PROMPT_VERSION.version)
+    parts = [prompt]
+    if PROFILE_PATH.exists():
+        resume = PROFILE_PATH.read_text(encoding="utf-8")[:COVER_RESUME_LIMIT]
+        parts.append(f"## Резюме (единственный источник фактов)\n{resume}")
+    else:
+        log.warning("cover_resume_missing", path=str(PROFILE_PATH))
+    if COVER_GUIDE_PATH.exists():
+        guide = COVER_GUIDE_PATH.read_text(encoding="utf-8")[:COVER_GUIDE_LIMIT]
+        parts.append(f"## Гайд по письмам (рекомендации, не источник фактов)\n{guide}")
+    return "\n\n".join(parts)
 
 
 def build_site_sources(
@@ -156,6 +182,7 @@ class Services:
         self._engine = make_engine(settings.postgres_dsn.get_secret_value())
         self._factory = make_session_factory(self._engine)
         self._system_prompt = _system_prompt()
+        self._cover_system_prompt = _cover_system_prompt()
         # один инстанс на процесс: счётчики fetch'ей дают «новые» элементы на повторный /digest
         self._fake_hh = FakeHhVacancySource()
         self._fake_gmail = FakeGmailInbox()
@@ -249,6 +276,7 @@ class Services:
                 "scoring": stub_scoring_response,
                 "mail_classify": stub_mail_response,
                 "invite": stub_invite_response,
+                "cover": stub_letter_response,
             }
             factory = factories.get(kind, stub_scoring_response)
             return FakeLlm(recorder=recorder, model=f"fake/{kind}-stub", response_factory=factory)
@@ -413,6 +441,46 @@ class Services:
 
             await run_job("daily_digest", repo, job)
             await session.commit()
+
+    async def generate_cover_letter(self, vacancy_id: int) -> GenerateCoverLetterResult:
+        """✉️/🔁: письмо Pro по вакансии + резюме; persist версии; карточка владельцу."""
+        async with self._factory() as session:
+            use_case = GenerateCoverLetter(
+                llm=self._llm(session, kind="cover"),
+                vacancy_reader=VacancyRepository(session),
+                letter_repo=CoverLetterRepository(session),
+                notifier=TelegramNotifier(self._bot, self._settings.owner_chat_id),
+                system_prompt=self._cover_system_prompt,
+                prompt_version=COVER_PROMPT_VERSION,
+            )
+            result = await use_case.run(vacancy_id)
+            await session.commit()
+            return result
+
+    async def save_cover_edit(self, vacancy_id: int, text: str) -> None:
+        """✏️: ручная правка — сохранить присланный текст новой версией + вернуть карточку."""
+        from app.domain.correspondence import CoverLetter
+        from app.ports.notifier import CoverLetterCard
+
+        async with self._factory() as session:
+            reader = VacancyRepository(session)
+            snapshot = await reader.get_by_id(vacancy_id)
+            letter = CoverLetter(
+                vacancy_id=vacancy_id,
+                text=text,
+                prompt_version=f"{COVER_PROMPT_VERSION.as_str()}+manual",
+            )
+            await CoverLetterRepository(session).add(letter)
+            await session.commit()
+            notifier = TelegramNotifier(self._bot, self._settings.owner_chat_id)
+            await notifier.send_cover_letter_card(
+                CoverLetterCard(
+                    vacancy_id=vacancy_id,
+                    title=snapshot.title if snapshot else f"вакансия #{vacancy_id}",
+                    company=snapshot.company if snapshot else "",
+                    text=text,
+                )
+            )
 
     async def label(self, ref_key: str, verdict: Verdict) -> LabeledVacancy | None:
         async with self._factory() as session:
