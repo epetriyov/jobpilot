@@ -46,7 +46,9 @@ class TelegramNotifier:
 
 
 class NullPublisher:
-    """Заглушка PublisherPort до подключения HH-адаптера (T115)."""
+    """Заглушка PublisherPort: рабочего канала поднятия резюме нет (web-источник HH
+    выключен / нет URL). Возвращает "disabled" — НЕ ложный "published" (иначе метрика
+    resume_published врёт, что резюме поднимается)."""
 
     async def publish(self) -> PublishOutcome:
-        return "published"
+        return "disabled"

@@ -40,3 +40,12 @@ async def test_limit_is_normal_outcome_not_error() -> None:
     result = await PublishResume(publisher=publisher, dry_run=False).run()
 
     assert result.status == "skipped_limit"  # без исключений — job останется success
+
+
+async def test_disabled_is_not_reported_as_published() -> None:
+    # заглушка без рабочего канала → "disabled", не ложный "published" (метрика не врёт)
+    publisher = PublisherSpy("disabled")
+
+    result = await PublishResume(publisher=publisher, dry_run=False).run()
+
+    assert result.status == "disabled"

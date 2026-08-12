@@ -48,7 +48,9 @@ class NotifierPort(Protocol):
         ...
 
 
-PublishOutcome = Literal["published", "skipped_limit"]
+# "disabled" — публикация недоступна (нет рабочего канала: web-источник HH выключен,
+# нет URL резюме). Честный статус вместо ложного "published" у заглушки.
+PublishOutcome = Literal["published", "skipped_limit", "disabled"]
 
 
 class PublisherPort(Protocol):

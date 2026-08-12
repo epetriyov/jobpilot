@@ -187,3 +187,21 @@ async def test_below_threshold_not_sent(db_session) -> None:  # type: ignore[no-
 
     assert result.discovered == 1
     assert notifier.cards == []  # заскорено, но ниже порога 60
+    # источник ОТДАЛ вакансию → это «новых нет», НЕ health-алерт (без ложной тревоги)
+    assert "⚠️" not in notifier.digests[0]
+    assert "нет" in notifier.digests[0].lower()
+
+
+async def test_sources_empty_warns_owner(db_session) -> None:  # type: ignore[no-untyped-def]
+    """#5: реальные источники вернули 0 сырья → видимый владельцу ⚠️ (сбой доступа),
+    а не молчаливое «новых нет» (иначе мёртвый токен/смена формата тонут незаметно)."""
+    notifier = SpyNotifier()
+    llm = FakeLlm(recorder=RecorderSpy(), responses=[VALID] * 3)
+
+    result = await make_pipeline(db_session, [FakeSource("hh", [])], notifier, llm).run()
+    await db_session.commit()
+
+    assert result.discovered == 0
+    assert notifier.cards == []
+    assert notifier.digests and "⚠️" in notifier.digests[0]
+    assert "0 вакансий" in notifier.digests[0]

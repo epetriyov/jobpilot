@@ -74,8 +74,14 @@ class RunDailyDigest:
             cards = await self._select_cards()
             span.set_attribute("digest.cards", len(cards))
 
+        # health-сигнал: источники есть, но сырьё пустое → сбой доступа
+        # (мёртвый токен, сменившийся формат письма, блокировка), а НЕ «всё видели»
+        sources_empty = bool(self._sources) and not collected
+        if sources_empty:
+            log.warning("digest_sources_empty", sources=len(self._sources), failed=failed)
+
         with tracer.start_as_current_span("digest.notify"):
-            await self._send(cards)
+            await self._send(cards, sources_empty=sources_empty)
 
         partial = failed > 0 and len(collected) > 0
         log.info(
@@ -149,10 +155,18 @@ class RunDailyDigest:
             for key, score in selected
         ]
 
-    async def _send(self, cards: list[DigestCard]) -> None:
+    async def _send(self, cards: list[DigestCard], *, sources_empty: bool = False) -> None:
         header = DRY_RUN_MARK if self._dry_run else "📋 Дайджест"
         if not cards:
-            await self._notifier.send_digest(f"{header}\nНовых релевантных вакансий нет.")
+            if sources_empty:
+                # видимый владельцу сигнал сбоя — иначе «0 вакансий» тонет как норма
+                await self._notifier.send_digest(
+                    f"{header}\n⚠️ Источники вернули 0 вакансий за период. "
+                    "Похоже на сбой доступа (токен/формат письма/блокировка), "
+                    "а не отсутствие новых — проверь логи и подписку."
+                )
+            else:
+                await self._notifier.send_digest(f"{header}\nНовых релевантных вакансий нет.")
             return
         await self._notifier.send_digest(f"{header}\nРелевантных вакансий: {len(cards)}")
         sent_refs: list[SourceRef] = []

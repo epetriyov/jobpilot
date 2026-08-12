@@ -15,7 +15,7 @@ log = structlog.get_logger("application.publish_resume")
 
 @dataclass
 class PublishResult:
-    status: Literal["published", "skipped_limit", "dry_run"]
+    status: Literal["published", "skipped_limit", "dry_run", "disabled"]
 
 
 class PublishResume:
@@ -34,6 +34,11 @@ class PublishResume:
             publish_skipped_total.add(1)
             log.info("publish_skipped", reason="limit")
             return PublishResult(status="skipped_limit")
+
+        if outcome == "disabled":
+            # рабочего канала поднятия нет — честно, без ложного resume_published
+            log.info("publish_disabled", reason="no_publisher")
+            return PublishResult(status="disabled")
 
         log.info("resume_published")
         return PublishResult(status="published")
