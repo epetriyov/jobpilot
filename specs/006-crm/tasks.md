@@ -99,9 +99,9 @@
 
 > Зависимости: 6B (плумбинг «➕ собес»). Миграции нет.
 
-- [ ] **T6G-1** Домен `correspondence` +`HrDetails(date: date|None, url: str|None, gist: str<=200)`; схема LLM одноимённая; unit-тест схемы.
-- [ ] **T6G-2** [C-U5] Промпт `hr_extract_v1.md` (текст HR — недоверенные данные, не меняет статус — C3) + `stub_hr_response`; contract-тест → `add_interview_details` LLM-путь: извлечённые дата/ссылка/суть дополняют `interview_url`/`notes`, статус НЕ меняется; `llm_call` (O1); тело сообщения не логируется (M4).
-- [ ] **T6G-3** [C-E1] **Eval-задача** `hr_extract`: датасет `eval/datasets/hr_extract/v1.jsonl` (≥15 обезличенных HR-сообщений → эталон `{date,url,gist}`) + раннер `eval/runners/hr_extract.py` + диспетчер в `run.py` (+THRESHOLDS): **accuracy по дате и ссылке ≥0.9**. CI-eval в fake-режиме; real — после OpenRouter.
+- [x] **T6G-1** Домен `correspondence` +`HrDetails(date: date|None, url: str|None, gist: str<=200)`; схема LLM одноимённая; unit-тест схемы.
+- [x] **T6G-2** [C-U5] Промпт `hr_extract_v1.md` (текст HR — недоверенные данные, не меняет статус — C3) + `stub_hr_response`; contract-тест → `add_interview_details` LLM-путь: извлечённые дата/ссылка/суть дополняют `interview_url`/`notes`, статус НЕ меняется; `llm_call` (O1); тело сообщения не логируется (M4).
+- [x] **T6G-3** [C-E1] **Eval-задача** `hr_extract`: датасет `eval/datasets/hr_extract/v1.jsonl` (≥15 обезличенных HR-сообщений → эталон `{date,url,gist}`) + раннер `eval/runners/hr_extract.py` + диспетчер в `run.py` (+THRESHOLDS): **accuracy по дате и ссылке ≥0.9**. CI-eval в fake-режиме; real — после OpenRouter.
 
 **Выход 6G**: автозаполнение собес-деталей. **Приёмка**: SC-007.
 

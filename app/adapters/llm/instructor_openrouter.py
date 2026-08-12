@@ -53,6 +53,8 @@ class InstructorOpenRouterLlm:
             "cover": settings.llm_model_letters,  # письма 6E — Pro (LLM_MODEL_LETTERS)
             "invite": settings.llm_model_invite,
             "judge": settings.llm_model_judge,
+            # hr_extract 6G — извлечение фактов, дешёвая быстрая модель (flash-lite)
+            "hr_extract": settings.llm_model_summary,
         }
 
     def _model_for(self, purpose: str) -> str:

@@ -20,6 +20,7 @@ from app.adapters.gmail.source import GmailInbox
 from app.adapters.hh.fake import FakeHhVacancySource
 from app.adapters.llm.fake import (
     FakeLlm,
+    stub_hr_response,
     stub_invite_response,
     stub_letter_response,
     stub_mail_response,
@@ -53,6 +54,7 @@ from app.application.build_invite_batch import BuildInviteBatch, InviteBatchResu
 from app.application.change_status import ChangeApplicationStatus
 from app.application.change_status import Outcome as ChangeOutcome
 from app.application.classify_inbox import ClassifyInbox
+from app.application.extract_hr_details import ExtractHrDetails, ExtractHrResult
 from app.application.fewshot import FewShotSelectorPort, SemanticSelector
 from app.application.generate_cover_letter import GenerateCoverLetter, GenerateCoverLetterResult
 from app.application.job_runner import run_job
@@ -80,6 +82,7 @@ SCORING_PROMPT_VERSION = PromptVersion(purpose="scoring", version=1)
 MAIL_PROMPT_VERSION = PromptVersion(purpose="mail_classify", version=1)
 INVITE_PROMPT_VERSION = PromptVersion(purpose="invite", version=2)
 COVER_PROMPT_VERSION = PromptVersion(purpose="cover", version=1)
+HR_EXTRACT_PROMPT_VERSION = PromptVersion(purpose="hr_extract", version=1)
 RELEVANCE_DATASET = Path("eval/datasets/relevance/v1.jsonl")
 PROFILE_PATH = Path("resumes/resume_em.md")
 PROFILE_LIMIT = 4000
@@ -277,6 +280,7 @@ class Services:
                 "mail_classify": stub_mail_response,
                 "invite": stub_invite_response,
                 "cover": stub_letter_response,
+                "hr_extract": stub_hr_response,
             }
             factory = factories.get(kind, stub_scoring_response)
             return FakeLlm(recorder=recorder, model=f"fake/{kind}-stub", response_factory=factory)
@@ -563,6 +567,23 @@ class Services:
             )
             await session.commit()
             return outcome
+
+    async def extract_hr_details(self, vacancy_id: int, *, message_text: str) -> ExtractHrResult:
+        """➕ собес (LLM-путь 6G): извлечь дату/ссылку/суть из HR-сообщения, дополнить детали.
+
+        Статус заявки не меняет (C3); тело сообщения не логируется (M4). Невалидно/пусто →
+        фолбэк на ручной ввод (обрабатывает хендлер).
+        """
+        async with self._factory() as session:
+            use_case = ExtractHrDetails(
+                llm=self._llm(session, kind="hr_extract"),
+                details=AddInterviewDetails(apps=ApplicationRepository(session)),
+                system_prompt=load_system_prompt("hr_extract", HR_EXTRACT_PROMPT_VERSION.version),
+                prompt_version=HR_EXTRACT_PROMPT_VERSION,
+            )
+            result = await use_case.run(vacancy_id, message_text=message_text)
+            await session.commit()
+            return result
 
     async def saved_applications(self) -> list[SavedApplicationView]:
         async with self._factory() as session:
