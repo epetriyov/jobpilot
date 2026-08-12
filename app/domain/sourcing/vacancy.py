@@ -67,6 +67,7 @@ class Vacancy(BaseModel):
     salary: Salary = Salary()
     location: str | None = None
     duplicate_of: SourceRef | None = None
+    canary: bool = False  # вакансия из canary-источника (этап 6A)
 
     @classmethod
     def create(

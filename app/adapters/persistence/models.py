@@ -6,10 +6,12 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     Integer,
@@ -17,7 +19,9 @@ from sqlalchemy import (
     String,
     Text,
     func,
+    text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -25,10 +29,14 @@ class Base(DeclarativeBase):
     pass
 
 
-class SeenVacancy(Base):
-    """Реестр виденных вакансий: дедуп S1 (source_ref) и S2 (normalized_key за 30 дней)."""
+class Vacancy(Base):
+    """Полное хранилище вакансий (таблица `vacancy`, миграция 0007_stage6a).
 
-    __tablename__ = "seen_vacancy"
+    Суперсет реестра виденных: дедуп S1 (source_ref) / S2 (normalized_key за
+    30 дней), скор R1, снапшот/raw S3. На `id` ссылается `application.vacancy_id`.
+    """
+
+    __tablename__ = "vacancy"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     source_ref: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
@@ -50,6 +58,13 @@ class SeenVacancy(Base):
     prompt_version: Mapped[str | None] = mapped_column(Text)
     score_model: Mapped[str | None] = mapped_column(Text)
     scored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # этап 6A (0007_stage6a): полное хранилище
+    raw: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    duplicate_of: Mapped[str | None] = mapped_column(Text)  # SourceRef оригинала (S2)
+    canary: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
 
 
 class LabeledVacancy(Base):

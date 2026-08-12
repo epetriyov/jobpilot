@@ -14,10 +14,10 @@
 
 > Зависимости: нет. Блокирует всё. Миграция `0007_stage6a_vacancy` (down_revision `0006_stage5` — stage-5 head; ребейз при мерже, research §7).
 
-- [ ] **T6A-1** [F-I1] Красный integration-тест миграции `0007`: на фикстуре `seen_vacancy` (N строк + labeled M) после `upgrade` → таблица `vacancy` содержит N строк, `source_ref`/`content_hash`/`normalized_key`/скор/снапшот целы; `vacancy`.count == N; повторный `upgrade` идемпотентен; `downgrade`→`upgrade` данные целы. → tests/integration/test_migration_0007.py
-- [ ] **T6A-2** Миграция `0007_stage6a_vacancy`: rename `seen_vacancy`→`vacancy`; add `raw jsonb NOT NULL DEFAULT '{}'`, `duplicate_of text NULL`, `canary bool NOT NULL DEFAULT false`; backfill `raw = jsonb_build_object('description', description_text)` для историков; индексы (uq `source_ref`, `normalized_key`) переезжают (data-model §1). down_revision=`0006_stage5` (stage-5 head).
-- [ ] **T6A-3** [S-U1][S-U2][R-U5] ORM `SeenVacancy`→`Vacancy` в models.py (+raw/duplicate_of/canary); домен `Vacancy` +`canary: bool = False`; `SeenVacancyRepository` ретаргет на `vacancy` (сигнатуры портов не меняются). Регресс-тесты дедупа/скоринга (S1/S2/R1) зелёные на новой таблице.
-- [ ] **T6A-4** `VacancyRepositoryPort` (ports/repositories.py): `get(source_ref)`, `get_by_id(id)`, `list(filter)`, `search_saved(query)` — для CRM/MCP/аналитики; contract-тест на fake. Композиция: `composition.py` без изменения семантики дайджеста.
+- [x] **T6A-1** [F-I1] Красный integration-тест миграции `0007`: на фикстуре `seen_vacancy` (N строк + labeled M) после `upgrade` → таблица `vacancy` содержит N строк, `source_ref`/`content_hash`/`normalized_key`/скор/снапшот целы; `vacancy`.count == N; повторный `upgrade` идемпотентен; `downgrade`→`upgrade` данные целы. → tests/integration/test_migration_0007.py
+- [x] **T6A-2** Миграция `0007_stage6a_vacancy`: rename `seen_vacancy`→`vacancy`; add `raw jsonb NOT NULL DEFAULT '{}'`, `duplicate_of text NULL`, `canary bool NOT NULL DEFAULT false`; backfill `raw = jsonb_build_object('description', description_text)` для историков; индексы (uq `source_ref`, `normalized_key`) переезжают (data-model §1). down_revision=`0006_stage5` (stage-5 head).
+- [x] **T6A-3** [S-U1][S-U2][R-U5] ORM `SeenVacancy`→`Vacancy` в models.py (+raw/duplicate_of/canary); домен `Vacancy` +`canary: bool = False`; `SeenVacancyRepository` ретаргет на `vacancy` (сигнатуры портов не меняются). Регресс-тесты дедупа/скоринга (S1/S2/R1) зелёные на новой таблице.
+- [x] **T6A-4** `VacancyRepositoryPort` (ports/repositories.py): `get(source_ref)`, `get_by_id(id)`, `list(filter)`, `search_saved(query)` — для CRM/MCP/аналитики; contract-тест на fake. Композиция: `composition.py` без изменения семантики дайджеста.
 
 **Выход 6A**: `vacancy` в проде, данные не потеряны, инварианты держатся; репозиторий доступен CRM/аналитике/MCP. **Приёмка**: SC-001.
 

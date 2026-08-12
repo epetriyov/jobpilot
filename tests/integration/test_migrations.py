@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, inspect, text
 
 pytestmark = pytest.mark.integration
 
-EXPECTED_TABLES = {"seen_vacancy", "labeled_vacancy", "llm_call", "job_run"}
+EXPECTED_TABLES = {"vacancy", "labeled_vacancy", "llm_call", "job_run"}
 
 
 def test_upgrade_creates_all_tables(pg_url: str, alembic_config) -> None:
@@ -32,16 +32,33 @@ def test_upgrade_is_idempotent(pg_url: str, alembic_config) -> None:
 
 
 def test_stage1_columns_present(pg_url: str, alembic_config) -> None:
-    """Миграция 0002_stage1: снапшот и скор в seen_vacancy (data-model этапа 1)."""
+    """Стейдж-1 снапшот/скор переехали в `vacancy` (rename 0007_stage6a)."""
     from alembic import command
 
     command.upgrade(alembic_config, "head")
 
     engine = create_engine(pg_url)
-    columns = {c["name"] for c in inspect(engine).get_columns("seen_vacancy")}
+    columns = {c["name"] for c in inspect(engine).get_columns("vacancy")}
     assert {"title", "description_text", "score", "prompt_version", "scored_at"} <= columns
-    indexes = {i["name"] for i in inspect(engine).get_indexes("seen_vacancy")}
-    assert "ix_seen_vacancy_scored" in indexes
+    indexes = {i["name"] for i in inspect(engine).get_indexes("vacancy")}
+    assert "ix_vacancy_scored" in indexes
+
+
+def test_stage6a_vacancy_columns_present(pg_url: str, alembic_config) -> None:
+    """Миграция 0007_stage6a: seen_vacancy→vacancy + raw/duplicate_of/canary (data-model §1)."""
+    from alembic import command
+
+    command.upgrade(alembic_config, "head")
+
+    engine = create_engine(pg_url)
+    inspector = inspect(engine)
+    tables = set(inspector.get_table_names())
+    assert "vacancy" in tables
+    assert "seen_vacancy" not in tables
+    columns = {c["name"] for c in inspector.get_columns("vacancy")}
+    assert {"raw", "duplicate_of", "canary"} <= columns
+    indexes = {i["name"] for i in inspector.get_indexes("vacancy")}
+    assert "ix_vacancy_normalized_key" in indexes  # S2 переехал
 
 
 def test_stage2_inbox_message_present(pg_url: str, alembic_config) -> None:

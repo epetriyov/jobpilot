@@ -20,8 +20,8 @@ from app.adapters.persistence.models import (
     LinkedInTarget,
     LlmCall,
     ScraperApproval,
-    SeenVacancy,
 )
+from app.adapters.persistence.models import Vacancy as VacancyRow
 from app.domain.correspondence import InboxMessage as InboxMessageDTO
 from app.domain.networking import InviteDraft as InviteDraftDTO
 from app.domain.networking import InviteStatus
@@ -30,7 +30,11 @@ from app.domain.shared import Source, SourceRef
 from app.domain.sourcing import Vacancy, content_hash
 from app.ports.llm import LlmCallRecord
 from app.ports.repositories import LabeledVacancy as LabeledVacancyDTO
-from app.ports.repositories import ScoredCandidate
+from app.ports.repositories import (
+    ScoredCandidate,
+    VacancyListFilter,
+    VacancyRecord,
+)
 
 
 def _parse_source_ref(key: str) -> SourceRef:
@@ -41,7 +45,7 @@ def _parse_source_ref(key: str) -> SourceRef:
     return SourceRef(source=source, external_id=":".join(parts[1:]))
 
 
-def _row_to_snapshot(row: SeenVacancy) -> VacancySnapshot:
+def _row_to_snapshot(row: VacancyRow) -> VacancySnapshot:
     return VacancySnapshot(
         source_ref=_parse_source_ref(row.source_ref),
         title=row.title or "",
@@ -70,7 +74,7 @@ class SeenVacancyRepository:
 
     async def is_seen(self, ref: SourceRef) -> bool:
         result = await self._session.execute(
-            select(SeenVacancy.id).where(SeenVacancy.source_ref == ref.as_key())
+            select(VacancyRow.id).where(VacancyRow.source_ref == ref.as_key())
         )
         return result.first() is not None
 
@@ -78,10 +82,11 @@ class SeenVacancyRepository:
         """Идемпотентно (S1): конфликт по source_ref не трогает first_seen_at.
 
         С этапа 1 пишет и снапшот (title/company/url/текст/вилка) — карточки
-        и разметка работают без повторного похода в источник.
+        и разметка работают без повторного похода в источник. С этапа 6A пишет
+        полный `raw` (S3), флаг `canary` и `duplicate_of` (S2) в хранилище `vacancy`.
         """
         stmt = (
-            insert(SeenVacancy)
+            insert(VacancyRow)
             .values(
                 source_ref=vacancy.source_ref.as_key(),
                 content_hash=content_hash(vacancy),
@@ -94,6 +99,11 @@ class SeenVacancyRepository:
                 salary_from=vacancy.salary.from_,
                 salary_to=vacancy.salary.to,
                 salary_currency=vacancy.salary.currency,
+                raw=vacancy.raw,
+                duplicate_of=(
+                    vacancy.duplicate_of.as_key() if vacancy.duplicate_of is not None else None
+                ),
+                canary=vacancy.canary,
             )
             .on_conflict_do_nothing(index_elements=["source_ref"])
         )
@@ -103,22 +113,22 @@ class SeenVacancyRepository:
         """R1: без скора актуальной prompt_version; дубликаты (digest_sent_at
         проставлен при обнаружении) и строки без снапшота не скорятся."""
         result = await self._session.execute(
-            select(SeenVacancy)
-            .where(SeenVacancy.description_text.is_not(None))
-            .where(SeenVacancy.digest_sent_at.is_(None))
+            select(VacancyRow)
+            .where(VacancyRow.description_text.is_not(None))
+            .where(VacancyRow.digest_sent_at.is_(None))
             .where(
-                (SeenVacancy.score.is_(None))
-                | (SeenVacancy.prompt_version.is_distinct_from(prompt_version))
+                (VacancyRow.score.is_(None))
+                | (VacancyRow.prompt_version.is_distinct_from(prompt_version))
             )
-            .order_by(SeenVacancy.first_seen_at.asc())
+            .order_by(VacancyRow.first_seen_at.asc())
             .limit(limit)
         )
         return [_row_to_snapshot(row) for row in result.scalars()]
 
     async def save_score(self, ref: SourceRef, score: Score) -> None:
         await self._session.execute(
-            update(SeenVacancy)
-            .where(SeenVacancy.source_ref == ref.as_key())
+            update(VacancyRow)
+            .where(VacancyRow.source_ref == ref.as_key())
             .values(
                 score=score.value,
                 score_reason=score.reason,
@@ -130,7 +140,7 @@ class SeenVacancyRepository:
 
     async def snapshot(self, ref: SourceRef) -> VacancySnapshot | None:
         result = await self._session.execute(
-            select(SeenVacancy).where(SeenVacancy.source_ref == ref.as_key())
+            select(VacancyRow).where(VacancyRow.source_ref == ref.as_key())
         )
         row = result.scalar_one_or_none()
         if row is None or row.description_text is None:
@@ -139,9 +149,9 @@ class SeenVacancyRepository:
 
     async def unsent_scored(self) -> list[ScoredCandidate]:
         result = await self._session.execute(
-            select(SeenVacancy)
-            .where(SeenVacancy.score.is_not(None))
-            .where(SeenVacancy.digest_sent_at.is_(None))
+            select(VacancyRow)
+            .where(VacancyRow.score.is_not(None))
+            .where(VacancyRow.digest_sent_at.is_(None))
         )
         return [
             ScoredCandidate(
@@ -160,10 +170,10 @@ class SeenVacancyRepository:
     async def find_duplicate(self, normalized_key: str, within_days: int = 30) -> str | None:
         cutoff = datetime.now(UTC) - timedelta(days=within_days)
         result = await self._session.execute(
-            select(SeenVacancy.source_ref)
-            .where(SeenVacancy.normalized_key == normalized_key)
-            .where(SeenVacancy.first_seen_at >= cutoff)
-            .order_by(SeenVacancy.first_seen_at.asc())
+            select(VacancyRow.source_ref)
+            .where(VacancyRow.normalized_key == normalized_key)
+            .where(VacancyRow.first_seen_at >= cutoff)
+            .order_by(VacancyRow.first_seen_at.asc())
             .limit(1)
         )
         return result.scalar_one_or_none()
@@ -172,10 +182,72 @@ class SeenVacancyRepository:
         if not refs:
             return
         await self._session.execute(
-            update(SeenVacancy)
-            .where(SeenVacancy.source_ref.in_([r.as_key() for r in refs]))
+            update(VacancyRow)
+            .where(VacancyRow.source_ref.in_([r.as_key() for r in refs]))
             .values(digest_sent_at=at)
         )
+
+
+def _row_to_record(row: VacancyRow) -> VacancyRecord:
+    return VacancyRecord(
+        id=row.id,
+        source_ref=_parse_source_ref(row.source_ref),
+        title=row.title or "",
+        company=row.company or "",
+        url=row.url or "",
+        description_text=row.description_text or "",
+        salary_text=_salary_text(row.salary_from, row.salary_to, row.salary_currency),
+        score=row.score,
+        score_reason=row.score_reason,
+        duplicate_of=row.duplicate_of,
+        canary=row.canary,
+        first_seen_at=row.first_seen_at,
+    )
+
+
+class VacancyRepository:
+    """Чтение полного хранилища `vacancy` (VacancyRepositoryPort, этап 6A).
+
+    Поверх той же таблицы, что и SeenVacancyRepository; отдаёт VacancyRecord
+    (id + снапшот + скор) для CRM/MCP/аналитики. Дедуп/скоринг-сигнатуры не трогает.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get(self, source_ref: SourceRef) -> VacancyRecord | None:
+        result = await self._session.execute(
+            select(VacancyRow).where(VacancyRow.source_ref == source_ref.as_key())
+        )
+        row = result.scalar_one_or_none()
+        return _row_to_record(row) if row is not None else None
+
+    async def get_by_id(self, vacancy_id: int) -> VacancyRecord | None:
+        row = await self._session.get(VacancyRow, vacancy_id)
+        return _row_to_record(row) if row is not None else None
+
+    async def list(self, filter_: VacancyListFilter) -> Sequence[VacancyRecord]:
+        stmt = select(VacancyRow)
+        if filter_.scored_only:
+            stmt = stmt.where(VacancyRow.score.is_not(None))
+        if filter_.min_score is not None:
+            stmt = stmt.where(VacancyRow.score >= filter_.min_score)
+        stmt = stmt.order_by(VacancyRow.first_seen_at.desc()).limit(filter_.limit)
+        result = await self._session.execute(stmt)
+        return [_row_to_record(row) for row in result.scalars()]
+
+    async def search_saved(self, query: str) -> Sequence[VacancyRecord]:
+        pattern = f"%{query}%"
+        result = await self._session.execute(
+            select(VacancyRow)
+            .where(
+                VacancyRow.title.ilike(pattern)
+                | VacancyRow.company.ilike(pattern)
+                | VacancyRow.description_text.ilike(pattern)
+            )
+            .order_by(VacancyRow.first_seen_at.desc())
+        )
+        return [_row_to_record(row) for row in result.scalars()]
 
 
 class LabelRepository:

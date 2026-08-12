@@ -21,6 +21,9 @@ __all__ = [
     "ScoringRepositoryPort",
     "ScraperApprovalPort",
     "SeenVacancyRepositoryPort",
+    "VacancyListFilter",
+    "VacancyRecord",
+    "VacancyRepositoryPort",
 ]
 
 
@@ -49,6 +52,63 @@ class ScoringRepositoryPort(Protocol):
 
     async def snapshot(self, ref: SourceRef) -> VacancySnapshot | None:
         """Снапшот виденной вакансии — разметка без похода в источник (этап 1)."""
+        ...
+
+
+class VacancyRecord(BaseModel):
+    """Строка хранилища `vacancy` для чтения CRM/MCP/аналитикой (этап 6A).
+
+    `id` — ключ, на который ссылается `application.vacancy_id`; наружу отдаётся
+    доменный `SourceRef`, снапшот и скор, без ORM.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id: int
+    source_ref: SourceRef
+    title: str
+    company: str
+    url: str
+    description_text: str
+    salary_text: str | None = None
+    score: int | None = None
+    score_reason: str | None = None
+    duplicate_of: str | None = None
+    canary: bool = False
+    first_seen_at: datetime
+
+
+class VacancyListFilter(BaseModel):
+    """Фильтр выборки хранилища для списков CRM/MCP/аналитики."""
+
+    model_config = ConfigDict(frozen=True)
+
+    scored_only: bool = False
+    min_score: int | None = None
+    limit: int = 50
+
+
+class VacancyRepositoryPort(Protocol):
+    """Чтение полного хранилища `vacancy` (этап 6A) — фундамент CRM/MCP/аналитики.
+
+    Надстройка над реестром seen: сигнатуры дедуп/скоринга не меняются, здесь —
+    доступ по ключам и поиск для карточек заявок, писем, MCP-инструментов.
+    """
+
+    async def get(self, source_ref: SourceRef) -> VacancyRecord | None:
+        """Строка по SourceRef (S1-ключ) — None, если вакансия не виделась."""
+        ...
+
+    async def get_by_id(self, vacancy_id: int) -> VacancyRecord | None:
+        """Строка по PK — ключ связи с `application.vacancy_id`."""
+        ...
+
+    async def list(self, filter_: VacancyListFilter) -> Sequence[VacancyRecord]:
+        """Список (новейшие первыми) с фильтром по скору — для /saved, MCP, аналитики."""
+        ...
+
+    async def search_saved(self, query: str) -> Sequence[VacancyRecord]:
+        """Поиск по title/company/описанию (регистронезависимо) — MCP `search_saved`."""
         ...
 
 
