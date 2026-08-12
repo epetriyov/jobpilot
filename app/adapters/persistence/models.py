@@ -138,6 +138,22 @@ class InboxMessageRow(Base):
     )
 
 
+class ScraperApproval(Base):
+    """Одобрение сайта-скрейпера владельцем (`/approve_scraper`, этап 5).
+
+    Служебный флаг источника (не доменный агрегат): наличие строки → сайт в
+    основном потоке дайджеста; нет строки → секция «На проверку (canary)».
+    """
+
+    __tablename__ = "scraper_approval"
+
+    site_name: Mapped[str] = mapped_column(Text, primary_key=True)
+    approved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    approved_by_chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
 class LinkedInTarget(Base):
     """Заготовка инвайта (этап 3): роль+компания+ссылка+текст; ПД адресата нет (N1)."""
 

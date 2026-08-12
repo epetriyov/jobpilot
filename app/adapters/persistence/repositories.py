@@ -19,6 +19,7 @@ from app.adapters.persistence.models import (
     LabeledVacancy,
     LinkedInTarget,
     LlmCall,
+    ScraperApproval,
     SeenVacancy,
 )
 from app.domain.correspondence import InboxMessage as InboxMessageDTO
@@ -333,6 +334,32 @@ class InboxMessageRepository:
                 )
             )
         return sections
+
+
+class ScraperApprovalRepository:
+    """Реализация ScraperApprovalPort (scraper_approval, этап 5)."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def is_approved(self, site: str) -> bool:
+        result = await self._session.execute(
+            select(ScraperApproval.site_name).where(ScraperApproval.site_name == site)
+        )
+        return result.first() is not None
+
+    async def approve(self, site: str, chat_id: int) -> None:
+        """Идемпотентно (S1-подобно): повторный approve не меняет approved_at."""
+        stmt = (
+            insert(ScraperApproval)
+            .values(site_name=site, approved_by_chat_id=chat_id)
+            .on_conflict_do_nothing(index_elements=["site_name"])
+        )
+        await self._session.execute(stmt)
+
+    async def approved_sites(self) -> set[str]:
+        result = await self._session.execute(select(ScraperApproval.site_name))
+        return {row for row in result.scalars()}
 
 
 class InviteRepository:

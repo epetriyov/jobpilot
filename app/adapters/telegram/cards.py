@@ -28,6 +28,8 @@ def render_card_text(card: DigestCard) -> str:
     if card.salary_text:
         lines.append(f"💰 {card.salary_text}")
     lines.append(f"⭐ {card.score}/100 — {card.reason}")
+    if card.note:  # пометка источника site:<name> (· canary) — этап 5
+        lines.append(f"🔖 {card.note}")
     return "\n".join(lines)
 
 

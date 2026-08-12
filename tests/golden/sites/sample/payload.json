@@ -1,0 +1,22 @@
+{
+  "vacancies": [
+    {
+      "id": "em-001",
+      "title": "Engineering Manager",
+      "city": "Москва",
+      "salary_from": 350000,
+      "salary_to": 450000,
+      "currency": "RUR",
+      "slug": "engineering-manager"
+    },
+    {
+      "id": "lead-002",
+      "title": "Тимлид платформы",
+      "city": null,
+      "salary_from": 400000,
+      "salary_to": null,
+      "currency": "RUR",
+      "slug": "teamlead-platform"
+    }
+  ]
+}

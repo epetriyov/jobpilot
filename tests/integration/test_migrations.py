@@ -74,6 +74,21 @@ def test_stage3_linkedin_target_present(pg_url: str, alembic_config) -> None:
     assert "uq_linkedin_target_active" in indexes
 
 
+def test_stage5_scraper_approval_present(pg_url: str, alembic_config) -> None:
+    """Миграция 0006_stage5: таблица scraper_approval (data-model.md этапа 5)."""
+    from alembic import command
+
+    command.upgrade(alembic_config, "head")
+
+    engine = create_engine(pg_url)
+    inspector = inspect(engine)
+    assert "scraper_approval" in inspector.get_table_names()
+    columns = {c["name"] for c in inspector.get_columns("scraper_approval")}
+    assert {"site_name", "approved_at", "approved_by_chat_id"} <= columns
+    pk = inspector.get_pk_constraint("scraper_approval")
+    assert pk["constrained_columns"] == ["site_name"]
+
+
 def test_pgvector_extension_enabled(pg_url: str, alembic_config) -> None:
     from alembic import command
 

@@ -26,7 +26,7 @@ from app.obs.metrics import (
     vacancies_discovered_total,
 )
 from app.ports.notifier import DigestCard, NotifierPort
-from app.ports.repositories import DigestRepositoryPort, ScoredCandidate
+from app.ports.repositories import DigestRepositoryPort, ScoredCandidate, ScraperApprovalPort
 from app.ports.sources import VacancySourcePort
 
 log = structlog.get_logger("application.run_daily_digest")
@@ -54,6 +54,8 @@ class RunDailyDigest:
         dry_run: bool,
         threshold: int,
         max_items: int,
+        canary_sites: set[str] | None = None,
+        approval: ScraperApprovalPort | None = None,
     ) -> None:
         self._sources = sources
         self._seen = seen_repo
@@ -62,6 +64,8 @@ class RunDailyDigest:
         self._dry_run = dry_run
         self._threshold = threshold
         self._max_items = max_items
+        self._canary_sites = canary_sites or set()
+        self._approval = approval
 
     async def run(self) -> DigestResult:
         collected, failed = await self._collect()
@@ -168,13 +172,30 @@ class RunDailyDigest:
             else:
                 await self._notifier.send_digest(f"{header}\nНовых релевантных вакансий нет.")
             return
-        await self._notifier.send_digest(f"{header}\nРелевантных вакансий: {len(cards)}")
+        approved = await self._approval.approved_sites() if self._approval else set()
+        main, canary = split_canary_cards(
+            cards, canary_sites=self._canary_sites, approved_sites=approved
+        )
         sent_refs: list[SourceRef] = []
-        for card in cards:
-            await self._notifier.send_card(card)
-            sent_refs.append(_ref_from_key(card.ref_key))
+        await self._notifier.send_digest(f"{header}\nРелевантных вакансий: {len(main)}")
+        sent_refs.extend(await self._send_cards(main))
+        if canary:
+            # Секция «На проверку (canary)»: новые сайты до /approve_scraper (US3)
+            await self._notifier.send_digest(
+                "🐤 На проверку (canary)\n"
+                f"Вакансии новых сайтов ({len(canary)}) — оцени качество и одобри "
+                "командой /approve_scraper <site>."
+            )
+            sent_refs.extend(await self._send_cards(canary))
         await self._seen.mark_digest_sent(sent_refs, datetime.now(UTC))
         digest_sent_total.add(1, {"dry_run": str(self._dry_run).lower()})
+
+    async def _send_cards(self, cards: list[DigestCard]) -> list[SourceRef]:
+        sent: list[SourceRef] = []
+        for card in cards:
+            await self._notifier.send_card(card)
+            sent.append(_ref_from_key(card.ref_key))
+        return sent
 
 
 def _ref_from_key(key: str) -> SourceRef:
@@ -185,3 +206,39 @@ def _ref_from_key(key: str) -> SourceRef:
     if source is Source.SITE:
         return SourceRef(source=source, site_name=parts[1], external_id=":".join(parts[2:]))
     return SourceRef(source=source, external_id=":".join(parts[1:]))
+
+
+def _site_of(ref_key: str) -> str | None:
+    """Имя сайта из ключа `site:<name>:<id>`; None для hh/getmatch/manual."""
+    parts = ref_key.split(":")
+    if len(parts) >= 3 and parts[0] == "site":
+        return parts[1]
+    return None
+
+
+def split_canary_cards(
+    cards: Sequence[DigestCard],
+    *,
+    canary_sites: set[str],
+    approved_sites: set[str],
+) -> tuple[list[DigestCard], list[DigestCard]]:
+    """Разбить карточки на основной поток и секцию «На проверку (canary)» (FR-007).
+
+    Сайт из canary-списка без одобрения → canary с пометкой `site:<name> · canary`;
+    одобренный/активный сайт → основной поток с пометкой `site:<name>`; не-сайтовые
+    источники — основной поток без пометки. Проекция approval → пометка не хранится
+    в вакансии (data-model §canary), считается на сборке дайджеста.
+    """
+    main: list[DigestCard] = []
+    canary: list[DigestCard] = []
+    for card in cards:
+        site = _site_of(card.ref_key)
+        if site is None:
+            main.append(card)
+            continue
+        is_canary = site in canary_sites and site not in approved_sites
+        if is_canary:
+            canary.append(card.model_copy(update={"note": f"site:{site} · canary"}))
+        else:
+            main.append(card.model_copy(update={"note": f"site:{site}"}))
+    return main, canary

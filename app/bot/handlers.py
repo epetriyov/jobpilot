@@ -24,6 +24,7 @@ async def cmd_start(message: Message) -> None:
         "/invites — пакет инвайтов LinkedIn\n"
         "/invites_pending — неотправленные\n"
         "/invites_status — воронка нетворкинга\n"
+        "/approve_scraper <site> — одобрить сайт-скрейпер из canary\n"
         "/ping — проверка связи"
     )
 
@@ -42,6 +43,23 @@ async def cmd_digest(message: Message, services: Services) -> None:
             "Готово: новых вакансий не найдено"
             + (" (источники HH ещё не подключены)." if not result.partial else ".")
         )
+
+
+@router.message(Command("approve_scraper"))
+async def cmd_approve_scraper(message: Message, services: Services) -> None:
+    """US3: владелец одобряет canary-сайт → его вакансии в основной поток дайджеста."""
+    parts = (message.text or "").split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].strip():
+        await message.answer("Укажи сайт: /approve_scraper <site>")
+        return
+    site = parts[1].strip().lower()
+    outcome, available = await services.approve_scraper(site)
+    if outcome == "unknown":
+        await message.answer(f"Неизвестный сайт «{site}». Доступные: " + ", ".join(available))
+    elif outcome == "already":
+        await message.answer(f"Сайт {site} уже одобрен ранее ✅")
+    else:
+        await message.answer(f"Сайт {site} одобрен — вакансии пойдут в основной поток дайджеста ✅")
 
 
 @router.message(Command("train"))

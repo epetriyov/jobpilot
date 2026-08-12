@@ -1,0 +1,22 @@
+[
+  {
+    "external_id": "em-001",
+    "title": "Engineering Manager",
+    "company": "Sample Corp",
+    "url": "https://sample.example/jobs/engineering-manager",
+    "location": "Москва",
+    "salary_from": 350000,
+    "salary_to": 450000,
+    "salary_currency": "RUR"
+  },
+  {
+    "external_id": "lead-002",
+    "title": "Тимлид платформы",
+    "company": "Sample Corp",
+    "url": "https://sample.example/jobs/teamlead-platform",
+    "location": null,
+    "salary_from": 400000,
+    "salary_to": null,
+    "salary_currency": "RUR"
+  }
+]

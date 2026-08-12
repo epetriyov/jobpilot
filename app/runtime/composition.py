@@ -30,8 +30,11 @@ from app.adapters.persistence.repositories import (
     JobRunRepository,
     LabelRepository,
     LlmCallRepository,
+    ScraperApprovalRepository,
     SeenVacancyRepository,
 )
+from app.adapters.sites.base import EscalateFn, SiteAdapter
+from app.adapters.sites.registry import SITE_ADAPTERS, SiteFactory
 from app.adapters.telegram.notifier import NullPublisher, TelegramNotifier
 from app.application.build_inbox_digest import BuildInboxDigest
 from app.application.build_invite_batch import BuildInviteBatch, InviteBatchResult
@@ -49,6 +52,7 @@ from app.domain.shared import PromptVersion
 from app.ports.inbox import InboxPort
 from app.ports.notifier import PublisherPort
 from app.ports.sources import VacancySourcePort
+from app.runtime.approval import ApprovalOutcome, available_scrapers, is_known_site
 
 log = structlog.get_logger("runtime.composition")
 
@@ -58,6 +62,32 @@ INVITE_PROMPT_VERSION = PromptVersion(purpose="invite", version=2)
 RELEVANCE_DATASET = Path("eval/datasets/relevance/v1.jsonl")
 PROFILE_PATH = Path("resumes/resume_em.md")
 PROFILE_LIMIT = 4000
+
+
+def build_site_sources(
+    settings: Settings,
+    *,
+    escalate: EscalateFn | None = None,
+    registry: dict[str, SiteFactory] | None = None,
+) -> list[SiteAdapter]:
+    """Собрать адаптеры сайтов по конфигу (SITES_ACTIVE ∪ SITES_CANARY).
+
+    Незарегистрированный (ещё не реализованный) сайт — пропуск с предупреждением,
+    не роняет остальные (S4). Реестр пуст в фундаменте (off-by-default).
+    """
+    reg = SITE_ADAPTERS if registry is None else registry
+    sources: list[SiteAdapter] = []
+    seen: set[str] = set()
+    for site in [*settings.sites_active, *settings.sites_canary]:
+        if site in seen:
+            continue
+        seen.add(site)
+        factory = reg.get(site)
+        if factory is None:
+            log.warning("site_adapter_not_registered", site=site)
+            continue
+        sources.append(factory(settings, escalate))
+    return sources
 
 
 def _system_prompt() -> str:
@@ -131,6 +161,30 @@ class Services:
             log.warning("hh_no_real_sources", sources=s.hh_sources)
         return sources
 
+    def _site_sources(self) -> list[SiteAdapter]:
+        """Активные + canary сайты-скрейперы (этап 5). Реестр пуст до по-сайтовых задач."""
+
+        async def escalate(text: str) -> None:
+            await TelegramNotifier(self._bot, self._settings.owner_chat_id).send_message(text)
+
+        return build_site_sources(self._settings, escalate=escalate)
+
+    async def approve_scraper(self, site: str) -> tuple[ApprovalOutcome, list[str]]:
+        """US3: одобрить сайт-скрейпер. Неизвестный → отказ + список доступных."""
+        if not is_known_site(site):
+            available = available_scrapers(
+                canary=self._settings.sites_canary, active=self._settings.sites_active
+            )
+            return "unknown", available
+        async with self._factory() as session:
+            repo = ScraperApprovalRepository(session)
+            if await repo.is_approved(site):
+                return "already", []
+            await repo.approve(site, self._settings.owner_chat_id)
+            await session.commit()
+            log.info("scraper_approved", site=site)
+            return "approved", []
+
     def _llm(self, session: object, *, kind: str = "scoring"):  # type: ignore[no-untyped-def]
         recorder = LlmCallRepository(session)  # type: ignore[arg-type]
         if self._settings.resolved_llm_mode() == "fake":
@@ -161,14 +215,18 @@ class Services:
                 fewshot_limit=self._settings.fewshot_limit,
                 fewshot_text_limit=self._settings.fewshot_text_limit,
             )
+            sources: list[VacancySourcePort] = list(self._sources())
+            sources += self._site_sources()
             digest = RunDailyDigest(
-                sources=self._sources(),
+                sources=sources,
                 seen_repo=seen,
                 scorer=scorer,
                 notifier=TelegramNotifier(self._bot, self._settings.owner_chat_id),
                 dry_run=self._settings.dry_run,
                 threshold=self._settings.digest_score_threshold,
                 max_items=self._settings.digest_max_items,
+                canary_sites=set(self._settings.sites_canary),
+                approval=ScraperApprovalRepository(session),
             )
             result = await digest.run()
 

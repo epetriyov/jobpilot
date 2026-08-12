@@ -14,25 +14,25 @@
 
 ## Phase 1: Foundational — общий каркас адаптера + канарейка
 
-- [ ] T501 Конфиг: `SITES_ACTIVE`, `SITES_CANARY`, `SITES_HEAVY`, `SITES_RATE_LIMIT_SEC`,
+- [x] T501 Конфиг: `SITES_ACTIVE`, `SITES_CANARY`, `SITES_HEAVY`, `SITES_RATE_LIMIT_SEC`,
   `SITES_USER_AGENT`, `SITES_EM_KEYWORDS`, `SITES_TIMEOUT_SEC` (contracts/env.md); валидация
   имён сайтов из фиксированного множества.
-- [ ] T502 [S-C10] Красные тесты → `adapters/sites/base.py` `SiteAdapter` + `http_transport.py`:
+- [x] T502 [S-C10] Красные тесты → `adapters/sites/base.py` `SiteAdapter` + `http_transport.py`:
   между запросами ≥`SITES_RATE_LIMIT_SEC` (≥1 s), `User-Agent` из конфига, таймауты/ретраи
   (PLAN.md §7.3), проверка robots.txt целевого пути (запрет → сайт не запрашивается).
-- [ ] T503 [S-C9] Красные тесты → изоляция падений в `SiteAdapter`: пустой ответ/5xx/исключение
+- [x] T503 [S-C9] Красные тесты → изоляция падений в `SiteAdapter`: пустой ответ/5xx/исключение
   → `SourceFetchFailed(source="site:<name>")` + инкремент `scraper_failures{site}` (S4);
   анти-бот/капча/логин-стена → `SourceFetchFailed(error="anti_bot")` + эскалация, **обход не
   реализуется** (S5, constitution IV); child-span на сайт (constitution V).
-- [ ] T504 [P] [S-C7]-домен: `em_filter.py` `filter_em(dtos, keywords)` (FR-004) — оставляет
+- [x] T504 [P] [S-C7]-домен: `em_filter.py` `filter_em(dtos, keywords)` (FR-004) — оставляет
   EM/лид-роли по ключам конфига; чистая функция, unit-тест на списке заголовков.
-- [ ] T505 [P] Golden-харнесс `tests/golden/sites/`: загрузка записанного payload, сверка с
+- [x] T505 [P] Golden-харнесс `tests/golden/sites/`: загрузка записанного payload, сверка с
   эталоном, diff-сигнал «скрейпер `<site>` сломан» ([S-C8]); контракт формы `VacancyDTO`
   (маппинг §data-model, [S-C7]).
-- [ ] T506 [F-I1] Миграция `0006_stage5`: `scraper_approval` + `ScraperApprovalPort`
+- [x] T506 [F-I1] Миграция `0006_stage5`: `scraper_approval` + `ScraperApprovalPort`
   (`is_approved/approve/approved_sites`) + integration-тест (идемпотентность повторного
   `alembic upgrade`).
-- [ ] T507 [US3] Канарейка: в `application/run_daily_digest.py` вакансии сайта без одобрения
+- [x] T507 [US3] Канарейка: в `application/run_daily_digest.py` вакансии сайта без одобрения
   (`SITES_CANARY` ∧ ¬`scraper_approval`) → секция «На проверку (canary)» с пометкой
   `site:<name> · canary`; одобренные → основной поток; бот `/approve_scraper <site>`
   (неизвестный сайт → отказ + список доступных); DRY_RUN-пометка «ТЕСТ» ([F-I2]).

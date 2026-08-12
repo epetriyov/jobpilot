@@ -8,8 +8,19 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field, SecretStr, ValidationError
+from pydantic import Field, SecretStr, ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Фиксированное множество карьерных порталов этапа 5 (contracts/env.md).
+# Любое имя в SITES_* вне этого множества — ошибка конфига ([F-U1]).
+KNOWN_SITES: frozenset[str] = frozenset({"yandex", "vk", "avito", "tbank", "ozon", "alfa", "sber"})
+# Минимальная пауза между запросами к одному порталу — вежливость ≥1 rps
+# (scraping-risks.md guardrail; жёсткий нижний предел, не настраивается вниз).
+SITES_MIN_RATE_LIMIT_SEC = 1.0
+
+
+def _split_sites(raw: str) -> list[str]:
+    return [s.strip() for s in raw.split(";") if s.strip()]
 
 
 class ConfigError(RuntimeError):
@@ -136,6 +147,52 @@ class Settings(BaseSettings):
     llm_model_judge: str = Field("google/gemini-2.5-flash", alias="LLM_MODEL_JUDGE")
     price_per_mtok_in: float = Field(0.10, alias="PRICE_PER_MTOK_IN")
     price_per_mtok_out: float = Field(0.40, alias="PRICE_PER_MTOK_OUT")
+
+    # --- сайты-скрейперы (этап 5; off-by-default guardrail, contracts/env.md) ---
+    sites_active_raw: str = Field("", alias="SITES_ACTIVE")
+    sites_canary_raw: str = Field("", alias="SITES_CANARY")
+    sites_heavy_raw: str = Field("ozon", alias="SITES_HEAVY")
+    sites_rate_limit_sec: float = Field(1.0, alias="SITES_RATE_LIMIT_SEC")
+    sites_timeout_sec: float = Field(20.0, alias="SITES_TIMEOUT_SEC")
+    sites_user_agent: str = Field("JobPilot/1.0 (+owner-contact)", alias="SITES_USER_AGENT")
+    sites_em_keywords_raw: str = Field(
+        "engineering manager;руководитель разработки;head of engineering;team lead;тимлид",
+        alias="SITES_EM_KEYWORDS",
+    )
+    sites_robots_respect: bool = Field(True, alias="SITES_ROBOTS_RESPECT")
+
+    @property
+    def sites_active(self) -> list[str]:
+        return _split_sites(self.sites_active_raw)
+
+    @property
+    def sites_canary(self) -> list[str]:
+        return _split_sites(self.sites_canary_raw)
+
+    @property
+    def sites_heavy(self) -> list[str]:
+        return _split_sites(self.sites_heavy_raw)
+
+    @property
+    def sites_em_keywords(self) -> list[str]:
+        return [k.strip() for k in self.sites_em_keywords_raw.split(";") if k.strip()]
+
+    @model_validator(mode="after")
+    def _validate_sites(self) -> Settings:
+        for raw in (self.sites_active_raw, self.sites_canary_raw, self.sites_heavy_raw):
+            unknown = sorted(set(_split_sites(raw)) - KNOWN_SITES)
+            if unknown:
+                raise ValueError(
+                    "Неизвестные сайты в SITES_*: "
+                    + ", ".join(unknown)
+                    + f". Допустимо: {', '.join(sorted(KNOWN_SITES))}"
+                )
+        if self.sites_rate_limit_sec < SITES_MIN_RATE_LIMIT_SEC:
+            raise ValueError(
+                f"SITES_RATE_LIMIT_SEC={self.sites_rate_limit_sec} нарушает вежливость "
+                f"≥{SITES_MIN_RATE_LIMIT_SEC} s между запросами (scraping-risks.md)"
+            )
+        return self
 
     # --- observability ---
     otel_exporter_otlp_endpoint: str = Field(

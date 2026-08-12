@@ -19,6 +19,7 @@ __all__ = [
     "LabeledVacancy",
     "ScoredCandidate",
     "ScoringRepositoryPort",
+    "ScraperApprovalPort",
     "SeenVacancyRepositoryPort",
 ]
 
@@ -87,6 +88,22 @@ class DatasetAppenderPort(Protocol):
     """Append-only строка eval-датасета (Приложение TEST_CASES.md)."""
 
     def append(self, example: dict) -> None: ...  # type: ignore[type-arg]
+
+
+class ScraperApprovalPort(Protocol):
+    """Персист факта `/approve_scraper <site>` (этап 5, data-model.md).
+
+    Служебный флаг источника (не доменный агрегат): сайт из SITES_CANARY без
+    одобрения → секция «На проверку»; одобренный → основной поток (FR-007).
+    """
+
+    async def is_approved(self, site: str) -> bool: ...
+
+    async def approve(self, site: str, chat_id: int) -> None:
+        """Идемпотентно: повторный approve не меняет момент первого одобрения."""
+        ...
+
+    async def approved_sites(self) -> set[str]: ...
 
 
 class JobRunRepositoryPort(Protocol):

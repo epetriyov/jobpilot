@@ -19,6 +19,9 @@ class DigestCard(BaseModel):
     salary_text: str | None
     score: int
     reason: str
+    # UI-пометка источника: `site:<name>` (+ ` · canary` в секции «На проверку»);
+    # None для hh/getmatch. Заполняется на сборке дайджеста (этап 5, SC-002).
+    note: str | None = None
 
 
 class InviteCard(BaseModel):
