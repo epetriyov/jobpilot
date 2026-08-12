@@ -1,0 +1,31 @@
+# JobPilot — systemd-юнит авто-подъёма compose-стека при перезагрузке VPS (этап 7).
+#
+# Установка (требует root/владельца репо на VPS):
+#   sudo cp deploy/jobpilot.service /etc/systemd/system/jobpilot.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jobpilot
+# Проверка:  systemctl status jobpilot   |   journalctl -u jobpilot -b
+#
+# Переменные (COMPOSE_FILE=docker-compose.yml:deploy/docker-compose.vps.yml,
+# JOBPILOT_IMAGE, DEPLOY_ENV, DRY_RUN и пр.) НЕ дублируются здесь — их читает
+# `docker compose` из .env в WorkingDirectory. Юнит лишь запускает compose.
+#
+# WorkingDirectory ниже — путь репо на VPS (VPS_APP_DIR из deploy.yml). Если у вас
+# другой путь — поправьте WorkingDirectory перед установкой.
+
+[Unit]
+Description=JobPilot docker compose stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/jobpilot
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
