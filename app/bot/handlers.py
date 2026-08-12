@@ -7,6 +7,13 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
 from app.adapters.telegram.cards import parse_invite_callback, parse_label_callback
+from app.adapters.telegram.crm_cards import (
+    CrmCallback,
+    build_saved_keyboard,
+    parse_crm_callback,
+    render_saved_text,
+)
+from app.domain.crm import ApplicationStatus, InterviewRoundKind, RejectStage
 from app.runtime.composition import Services
 
 router = Router()
@@ -19,6 +26,8 @@ async def cmd_start(message: Message) -> None:
     await message.answer(
         "JobPilot на связи. Команды:\n"
         "/digest — дайджест вакансий сейчас\n"
+        "/saved — сохранённые заявки (CRM) и их статусы\n"
+        "/iv <id> <ссылка> | <заметка> — детали собеса к заявке\n"
         "/train — прогресс разметки 👍/👎\n"
         "/publish — поднять резюме\n"
         "/invites — пакет инвайтов LinkedIn\n"
@@ -130,6 +139,85 @@ async def on_invite_status(callback: CallbackQuery, services: Services) -> None:
         "not_found": "Не нашёл заготовку 🤔",
     }
     await callback.answer(replies[outcome])
+
+
+@router.message(Command("saved"))
+async def cmd_saved(message: Message, services: Services) -> None:
+    """US2: список заявок CRM с контекстными кнопками статусов/раундов/отказа."""
+    views = await services.saved_applications()
+    if not views:
+        await message.answer("Заявок пока нет. Жми 💾 Сохранить на карточке вакансии.")
+        return
+    for view in views:
+        await message.answer(render_saved_text(view), reply_markup=build_saved_keyboard(view))
+
+
+@router.message(Command("iv"))
+async def cmd_iv(message: Message, services: Services) -> None:
+    """US3 (ручной путь, [C-U5]): «➕ собес» — дополняет детали, статус НЕ меняет (C3).
+
+    Формат: /iv <vacancy_id> <ссылка> | <заметка>
+    """
+    parts = (message.text or "").split(maxsplit=2)
+    if len(parts) < 3:
+        await message.answer("Формат: /iv <id вакансии> <ссылка> | <заметка>")
+        return
+    try:
+        vacancy_id = int(parts[1])
+    except ValueError:
+        await message.answer("id вакансии должен быть числом.")
+        return
+    url_part, sep, notes_part = parts[2].partition("|")
+    url = url_part.strip() or None
+    notes = notes_part.strip() if sep else None
+    outcome = await services.add_interview_details(vacancy_id, url=url, notes=notes or None)
+    if outcome == "not_found":
+        await message.answer("Заявка не найдена — сначала 💾 Сохранить вакансию.")
+    else:
+        await message.answer("Записал детали собеса ➕ (статус не менял).")
+
+
+async def _dispatch_crm(services: Services, cb: CrmCallback) -> str:
+    """Колбэк CRM → доменный метод через use case. Мэппинг исхода → вежливый ответ."""
+    not_found = "Заявка не найдена — сначала 💾 Сохранить."
+    illegal = "Так по воронке нельзя (переходы только вперёд, §3.3)."
+    if cb.action == "save":
+        return {
+            "saved": "Сохранил 💾",
+            "already": "Уже сохранена ранее ✅",
+            "not_found": "Вакансия не найдена в хранилище 🤔",
+        }[await services.save_vacancy(cb.vacancy_id)]
+    if cb.action == "del":
+        outcome = await services.delete_application(cb.vacancy_id)
+        return "Удалил 🗑" if outcome == "deleted" else not_found
+    if cb.action == "iv":
+        return "Пришли детали: /iv " + str(cb.vacancy_id) + " <ссылка> | <заметка>"
+    if cb.arg is None:
+        return "Не разобрал кнопку 🤔"
+    try:
+        if cb.action == "adv":
+            outcome = await services.advance_application(cb.vacancy_id, ApplicationStatus(cb.arg))
+        elif cb.action == "rnd":
+            outcome = await services.add_application_round(
+                cb.vacancy_id, InterviewRoundKind(cb.arg)
+            )
+        elif cb.action == "rej":
+            outcome = await services.reject_application(cb.vacancy_id, RejectStage(cb.arg))
+        else:
+            return "Неизвестное действие 🤔"
+    except ValueError:
+        return "Не разобрал кнопку 🤔"
+    return {"ok": "Готово ✅", "illegal": illegal, "not_found": not_found}[outcome]
+
+
+@router.callback_query(F.data.startswith("crm:"))
+async def on_crm(callback: CallbackQuery, services: Services) -> None:
+    try:
+        cb = parse_crm_callback(callback.data or "")
+    except ValueError:
+        await callback.answer()
+        return
+    await callback.answer(await _dispatch_crm(services, cb))
 
 
 @router.callback_query()

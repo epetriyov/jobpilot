@@ -9,12 +9,14 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Literal, cast
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.persistence.models import (
+    ApplicationRow,
     InboxMessageRow,
+    InterviewRoundRow,
     JobRun,
     LabeledVacancy,
     LinkedInTarget,
@@ -23,6 +25,13 @@ from app.adapters.persistence.models import (
 )
 from app.adapters.persistence.models import Vacancy as VacancyRow
 from app.domain.correspondence import InboxMessage as InboxMessageDTO
+from app.domain.crm import (
+    Application,
+    ApplicationStatus,
+    InterviewRound,
+    InterviewRoundKind,
+    RejectStage,
+)
 from app.domain.networking import InviteDraft as InviteDraftDTO
 from app.domain.networking import InviteStatus
 from app.domain.relevance import Score, VacancySnapshot
@@ -504,4 +513,111 @@ class InviteRepository:
             status=InviteStatus(row.status),
             sent_at=row.sent_at,
             accepted_at=row.accepted_at,
+        )
+
+
+class ApplicationRepository:
+    """Реализация ApplicationRepositoryPort (application + interview_round, этап 6B)."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get_by_vacancy(self, vacancy_id: int) -> Application | None:
+        row = (
+            await self._session.execute(
+                select(ApplicationRow).where(ApplicationRow.vacancy_id == vacancy_id)
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            return None
+        rounds = await self._rounds_for(row.id)
+        return self._to_domain(row, rounds)
+
+    async def save(self, app: Application) -> int:
+        """Upsert по vacancy_id (C1); раунды пересобираются (append-only, малый объём)."""
+        row = (
+            await self._session.execute(
+                select(ApplicationRow).where(ApplicationRow.vacancy_id == app.vacancy_id)
+            )
+        ).scalar_one_or_none()
+        reject_stage = str(app.reject_stage) if app.reject_stage is not None else None
+        if row is None:
+            row = ApplicationRow(
+                vacancy_id=app.vacancy_id,
+                status=str(app.status),
+                reject_stage=reject_stage,
+                interview_url=app.interview_url,
+                notes=app.notes,
+            )
+            self._session.add(row)
+            await self._session.flush()
+        else:
+            row.status = str(app.status)
+            row.reject_stage = reject_stage
+            row.interview_url = app.interview_url
+            row.notes = app.notes
+            row.updated_at = datetime.now(UTC)
+        await self._session.execute(
+            delete(InterviewRoundRow).where(InterviewRoundRow.application_id == row.id)
+        )
+        for rnd in app.interview_rounds:
+            self._session.add(
+                InterviewRoundRow(
+                    application_id=row.id,
+                    kind=str(rnd.kind),
+                    ordinal=rnd.ordinal,
+                    at=rnd.at,
+                )
+            )
+        await self._session.flush()
+        return row.id
+
+    async def delete(self, vacancy_id: int) -> None:
+        await self._session.execute(
+            delete(ApplicationRow).where(ApplicationRow.vacancy_id == vacancy_id)
+        )
+
+    async def list_all(self) -> list[Application]:
+        rows = list(
+            (
+                await self._session.execute(
+                    select(ApplicationRow).order_by(ApplicationRow.created_at.asc())
+                )
+            ).scalars()
+        )
+        result: list[Application] = []
+        for row in rows:
+            rounds = await self._rounds_for(row.id)
+            result.append(self._to_domain(row, rounds))
+        return result
+
+    async def funnel_counts(self) -> dict[str, int]:
+        rows = await self._session.execute(
+            select(ApplicationRow.status, func.count()).group_by(ApplicationRow.status)
+        )
+        return {status: count for status, count in rows}
+
+    async def _rounds_for(self, application_id: int) -> list[InterviewRoundRow]:
+        return list(
+            (
+                await self._session.execute(
+                    select(InterviewRoundRow)
+                    .where(InterviewRoundRow.application_id == application_id)
+                    .order_by(InterviewRoundRow.ordinal.asc())
+                )
+            ).scalars()
+        )
+
+    @staticmethod
+    def _to_domain(row: ApplicationRow, rounds: Sequence[InterviewRoundRow]) -> Application:
+        return Application(
+            vacancy_id=row.vacancy_id,
+            status=ApplicationStatus(row.status),
+            interview_rounds=[
+                InterviewRound(kind=InterviewRoundKind(r.kind), ordinal=r.ordinal, at=r.at)
+                for r in rounds
+            ],
+            reject_stage=RejectStage(row.reject_stage) if row.reject_stage else None,
+            interview_url=row.interview_url,
+            notes=row.notes,
         )

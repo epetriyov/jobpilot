@@ -14,10 +14,12 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    ForeignKey,
     Integer,
     Numeric,
     String,
     Text,
+    UniqueConstraint,
     func,
     text,
 )
@@ -189,3 +191,57 @@ class LinkedInTarget(Base):
     )
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ApplicationRow(Base):
+    """Заявка CRM (этап 6B, миграция 0008): статусная машина §3.3, C1 (uq vacancy_id)."""
+
+    __tablename__ = "application"
+    __table_args__ = (
+        UniqueConstraint("vacancy_id", name="uq_application_vacancy"),
+        CheckConstraint(
+            "status IN ('new','applied','interview','offer','rejected')",
+            name="ck_application_status",
+        ),
+        CheckConstraint(
+            "reject_stage IS NULL OR reject_stage IN ('pre_hr','hr','tech','final')",
+            name="ck_application_reject_stage",
+        ),
+        CheckConstraint(
+            "status <> 'rejected' OR reject_stage IS NOT NULL",
+            name="ck_application_rejected_has_stage",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    vacancy_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("vacancy.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    reject_stage: Mapped[str | None] = mapped_column(String(16))
+    interview_url: Mapped[str | None] = mapped_column(Text)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class InterviewRoundRow(Base):
+    """Раунд собеседования (этап 6B, миграция 0008): монотонность в пределах заявки (C2)."""
+
+    __tablename__ = "interview_round"
+    __table_args__ = (
+        UniqueConstraint("application_id", "ordinal", name="uq_interview_round_ordinal"),
+        UniqueConstraint("application_id", "kind", name="uq_interview_round_kind"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    application_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("application.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    ordinal: Mapped[int] = mapped_column(Integer, nullable=False)
+    at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )

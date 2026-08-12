@@ -7,20 +7,23 @@ from __future__ import annotations
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from app.adapters.telegram.crm_cards import build_save_button
 from app.domain.relevance import Verdict
 from app.ports.notifier import DigestCard, InviteCard
 
 
 def build_card_keyboard(card: DigestCard) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="👍", callback_data=f"label:relevant:{card.ref_key}"),
-                InlineKeyboardButton(text="👎", callback_data=f"label:irrelevant:{card.ref_key}"),
-                InlineKeyboardButton(text="🔗", url=card.url),
-            ]
+    rows = [
+        [
+            InlineKeyboardButton(text="👍", callback_data=f"label:relevant:{card.ref_key}"),
+            InlineKeyboardButton(text="👎", callback_data=f"label:irrelevant:{card.ref_key}"),
+            InlineKeyboardButton(text="🔗", url=card.url),
         ]
-    )
+    ]
+    # 💾 Сохранить в CRM — только когда известен id вакансии (этап 6B; см. DigestCard).
+    if card.vacancy_id is not None:
+        rows.append([build_save_button(card.vacancy_id)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def render_card_text(card: DigestCard) -> str:

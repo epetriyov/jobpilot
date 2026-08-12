@@ -8,11 +8,13 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domain.crm import Application
 from app.domain.relevance import LabeledVacancy, Score, VacancySnapshot
 from app.domain.shared import SourceRef
 from app.domain.sourcing import Vacancy
 
 __all__ = [
+    "ApplicationRepositoryPort",
     "DigestRepositoryPort",
     "JobRunRepositoryPort",
     "LabelRepositoryPort",
@@ -164,6 +166,28 @@ class ScraperApprovalPort(Protocol):
         ...
 
     async def approved_sites(self) -> set[str]: ...
+
+
+class ApplicationRepositoryPort(Protocol):
+    """Хранилище заявок CRM (data-model §2). Один активный на вакансию — C1 (unique)."""
+
+    async def get_by_vacancy(self, vacancy_id: int) -> Application | None: ...
+
+    async def save(self, app: Application) -> int:
+        """Upsert по vacancy_id (C1): создаёт или обновляет заявку и её раунды."""
+        ...
+
+    async def delete(self, vacancy_id: int) -> None:
+        """🗑 hard-delete из любого статуса (не переход); освобождает вакансию (C1)."""
+        ...
+
+    async def list_all(self) -> list[Application]:
+        """Все заявки для `/saved`."""
+        ...
+
+    async def funnel_counts(self) -> dict[str, int]:
+        """Воронка по статусам для `/stats` (6C)."""
+        ...
 
 
 class JobRunRepositoryPort(Protocol):

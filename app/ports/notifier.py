@@ -22,6 +22,9 @@ class DigestCard(BaseModel):
     # UI-пометка источника: `site:<name>` (+ ` · canary` в секции «На проверку»);
     # None для hh/getmatch. Заполняется на сборке дайджеста (этап 5, SC-002).
     note: str | None = None
+    # id строки `vacancy` — для кнопки 💾 Сохранить (CRM, этап 6B). None до вливания 6A,
+    # когда дайджест начнёт проставлять id; при None кнопка 💾 не показывается.
+    vacancy_id: int | None = None
 
 
 class InviteCard(BaseModel):

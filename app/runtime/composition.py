@@ -27,6 +27,7 @@ from app.adapters.llm.prompts import load_system_prompt
 from app.adapters.persistence.database import make_engine, make_session_factory
 from app.adapters.persistence.dataset import JsonlDatasetAppender
 from app.adapters.persistence.repositories import (
+    ApplicationRepository,
     InboxMessageRepository,
     InviteRepository,
     JobRunRepository,
@@ -34,21 +35,30 @@ from app.adapters.persistence.repositories import (
     LlmCallRepository,
     ScraperApprovalRepository,
     SeenVacancyRepository,
+    VacancyRepository,
 )
 from app.adapters.sites.base import EscalateFn, SiteAdapter
 from app.adapters.sites.registry import SITE_ADAPTERS, SiteFactory
+from app.adapters.telegram.crm_cards import SavedApplicationView
 from app.adapters.telegram.notifier import NullPublisher, TelegramNotifier
+from app.application.add_interview_details import AddInterviewDetails
+from app.application.add_interview_details import Outcome as DetailsOutcome
 from app.application.build_inbox_digest import BuildInboxDigest
 from app.application.build_invite_batch import BuildInviteBatch, InviteBatchResult
+from app.application.change_status import ChangeApplicationStatus
+from app.application.change_status import Outcome as ChangeOutcome
 from app.application.classify_inbox import ClassifyInbox
 from app.application.job_runner import run_job
 from app.application.label_vacancy import LabelVacancy
 from app.application.publish_resume import PublishResult, PublishResume
 from app.application.run_daily_digest import DigestResult, RunDailyDigest
+from app.application.save_vacancy import Outcome as SaveOutcome
+from app.application.save_vacancy import SaveVacancy
 from app.application.score_vacancy import ScoreVacancy
 from app.application.update_invite_status import Outcome as InviteOutcome
 from app.application.update_invite_status import UpdateInviteStatus
 from app.config import Settings
+from app.domain.crm import ApplicationStatus, InterviewRoundKind, RejectStage
 from app.domain.relevance import LabeledVacancy, Verdict
 from app.domain.shared import PromptVersion
 from app.ports.inbox import InboxPort
@@ -390,6 +400,82 @@ class Services:
     async def train_progress(self) -> tuple[int, int]:
         async with self._factory() as session:
             return await LabelRepository(session).counts()
+
+    # --- CRM (этап 6B): 💾 Сохранить, /saved, статусы/раунды/отказ, 🗑, ➕ собес ---
+
+    async def save_vacancy(self, vacancy_id: int) -> SaveOutcome:
+        async with self._factory() as session:
+            use_case = SaveVacancy(
+                apps=ApplicationRepository(session),
+                vacancies=VacancyRepository(session),
+            )
+            outcome, _ = await use_case.run(vacancy_id)
+            await session.commit()
+            return outcome
+
+    async def advance_application(self, vacancy_id: int, to: ApplicationStatus) -> ChangeOutcome:
+        async with self._factory() as session:
+            outcome = await ChangeApplicationStatus(apps=ApplicationRepository(session)).advance(
+                vacancy_id, to
+            )
+            await session.commit()
+            return outcome
+
+    async def add_application_round(
+        self, vacancy_id: int, kind: InterviewRoundKind
+    ) -> ChangeOutcome:
+        async with self._factory() as session:
+            outcome = await ChangeApplicationStatus(apps=ApplicationRepository(session)).add_round(
+                vacancy_id, kind
+            )
+            await session.commit()
+            return outcome
+
+    async def reject_application(self, vacancy_id: int, stage: RejectStage | None) -> ChangeOutcome:
+        async with self._factory() as session:
+            outcome = await ChangeApplicationStatus(apps=ApplicationRepository(session)).reject(
+                vacancy_id, stage
+            )
+            await session.commit()
+            return outcome
+
+    async def delete_application(self, vacancy_id: int) -> ChangeOutcome:
+        async with self._factory() as session:
+            outcome = await ChangeApplicationStatus(apps=ApplicationRepository(session)).delete(
+                vacancy_id
+            )
+            await session.commit()
+            return outcome
+
+    async def add_interview_details(
+        self, vacancy_id: int, *, url: str | None = None, notes: str | None = None
+    ) -> DetailsOutcome:
+        async with self._factory() as session:
+            outcome = await AddInterviewDetails(apps=ApplicationRepository(session)).run(
+                vacancy_id, url=url, notes=notes
+            )
+            await session.commit()
+            return outcome
+
+    async def saved_applications(self) -> list[SavedApplicationView]:
+        async with self._factory() as session:
+            apps = ApplicationRepository(session)
+            vacancies = VacancyRepository(session)
+            views: list[SavedApplicationView] = []
+            for app in await apps.list_all():
+                vacancy = await vacancies.get_by_id(app.vacancy_id)
+                views.append(
+                    SavedApplicationView(
+                        vacancy_id=app.vacancy_id,
+                        title=vacancy.title if vacancy else "—",
+                        company=vacancy.company if vacancy else "—",
+                        status=str(app.status),
+                        rounds=[str(r.kind) for r in app.interview_rounds],
+                        interview_url=app.interview_url,
+                        notes=app.notes,
+                    )
+                )
+            return views
 
     async def publish(self) -> PublishResult:
         use_case = PublishResume(publisher=self._publisher(), dry_run=self._settings.dry_run)
