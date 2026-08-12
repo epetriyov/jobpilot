@@ -45,9 +45,9 @@
 
 > Зависимости: 6B (для `/stats` нужна воронка Application). Миграции нет.
 
-- [ ] **T6C-1** Contract-тест → `application/funnel_stats.py`: воронка Application (счётчики по статусам + конверсии) из `ApplicationRepository.funnel_counts`; бот `/stats`.
-- [ ] **T6C-2** [C-I2] Integration-тест → `application/report_costs.py`: `/costs` за период = сумма `llm_call.cost_usd` (фикстуры) и сверка с Langfuse-экспортом ±5%; бот `/costs`.
-- [ ] **T6C-3** [C-E2] Contract/integration → `application/review_agreement.py`: `/review` — N случайных скоренных вакансий → вердикты владельца → agreement rate в отчёт; расхождения записаны в `label` (через `LabelRepository.upsert`). Бот `/review` (пошаговый диалог).
+- [x] **T6C-1** Contract-тест → `application/funnel_stats.py`: воронка Application (счётчики по статусам + конверсии) из `ApplicationRepository.funnel_counts`; бот `/stats`.
+- [x] **T6C-2** [C-I2] Integration-тест → `application/report_costs.py`: `/costs` за период = сумма `llm_call.cost_usd` (фикстуры) и сверка с Langfuse-экспортом ±5%; бот `/costs`.
+- [x] **T6C-3** [C-E2] Contract/integration → `application/review_agreement.py`: `/review` — N случайных скоренных вакансий → вердикты владельца → agreement rate в отчёт; расхождения записаны в `label` (через `LabelRepository.upsert`). Бот `/review` (пошаговый диалог).
 
 **Выход 6C**: измеримость воронки/затрат/качества. **Приёмка**: SC-003.
 

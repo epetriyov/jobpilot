@@ -20,3 +20,6 @@ dist/
 # runtime
 backups/
 *.log
+
+# claude code local settings (contains API keys)
+.claude/settings.local.json

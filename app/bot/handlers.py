@@ -8,6 +8,14 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
+from app.adapters.telegram.analytics_cards import (
+    build_review_keyboard,
+    parse_review_callback,
+    render_costs,
+    render_funnel,
+    render_review_candidate,
+    render_review_summary,
+)
 from app.adapters.telegram.cards import (
     parse_cover_callback,
     parse_invite_callback,
@@ -19,6 +27,7 @@ from app.adapters.telegram.crm_cards import (
     parse_crm_callback,
     render_saved_text,
 )
+from app.application.review_agreement import ReviewCandidate, ReviewSummary
 from app.domain.correspondence import COVER_LETTER_MAX_CHARS
 from app.domain.crm import ApplicationStatus, InterviewRoundKind, RejectStage
 from app.runtime.composition import Services
@@ -32,7 +41,15 @@ class CoverEdit(StatesGroup):
     waiting_text = State()
 
 
+class ReviewFlow(StatesGroup):
+    """FSM пошагового /review (6C): показываем скоренные вакансии по одной, копим вердикты."""
+
+    reviewing = State()
+
+
 TRAIN_GOAL = 30  # цель разметки этапа 1 ([R-E1])
+REVIEW_SAMPLE = 10  # сколько скоренных вакансий показать за один /review ([C-E2])
+DEFAULT_COSTS_DAYS = 30  # окно /costs по умолчанию
 
 
 @router.message(Command("start"))
@@ -44,6 +61,9 @@ async def cmd_start(message: Message) -> None:
         "/iv <id> <ссылка> | <заметка> — детали собеса к заявке (вручную)\n"
         "/hr <id> <текст HR> — извлечь детали собеса из сообщения рекрутёра\n"
         "/train — прогресс разметки 👍/👎\n"
+        "/stats — воронка заявок и конверсии\n"
+        "/costs [дней] — затраты LLM за период\n"
+        "/review — сверить скор со своими вердиктами (agreement rate)\n"
         "/publish — поднять резюме\n"
         "/invites — пакет инвайтов LinkedIn\n"
         "/invites_pending — неотправленные\n"
@@ -231,6 +251,46 @@ async def cmd_hr(message: Message, services: Services) -> None:
         await message.answer("Заявка не найдена — сначала 💾 Сохранить вакансию.")
 
 
+@router.message(Command("stats"))
+async def cmd_stats(message: Message, services: Services) -> None:
+    """US4 (6C): воронка заявок по статусам + конверсии + счётчики хранилища/разметки."""
+    report = await services.funnel_stats()
+    await message.answer(render_funnel(report))
+
+
+@router.message(Command("costs"))
+async def cmd_costs(message: Message, services: Services) -> None:
+    """US4 (6C): сумма затрат LLM за период (по умолчанию 30 дней). `/costs 7` — за неделю."""
+    parts = (message.text or "").split()
+    days = DEFAULT_COSTS_DAYS
+    if len(parts) > 1:
+        try:
+            days = int(parts[1])
+        except ValueError:
+            days = DEFAULT_COSTS_DAYS
+    report = await services.report_costs(days)
+    await message.answer(render_costs(report))
+
+
+@router.message(Command("review"))
+async def cmd_review(message: Message, services: Services, state: FSMContext) -> None:
+    """US4 ([C-E2]): показать N скоренных вакансий по одной; вердикты копятся в FSM."""
+    candidates = await services.start_review(REVIEW_SAMPLE)
+    if not candidates:
+        await message.answer("Нет скоренных вакансий для ревью — сначала собери дайджест.")
+        return
+    await state.set_state(ReviewFlow.reviewing)
+    await state.update_data(
+        queue=[c.model_dump(mode="json") for c in candidates],
+        index=0,
+        agreed=0,
+    )
+    await message.answer(
+        render_review_candidate(candidates[0], index=0, total=len(candidates)),
+        reply_markup=build_review_keyboard(),
+    )
+
+
 async def _dispatch_crm(services: Services, cb: CrmCallback) -> str:
     """Колбэк CRM → доменный метод через use case. Мэппинг исхода → вежливый ответ."""
     not_found = "Заявка не найдена — сначала 💾 Сохранить."
@@ -316,6 +376,44 @@ async def on_cover_edit_text(message: Message, services: Services, state: FSMCon
     vacancy_id = int(data["vacancy_id"])
     await state.clear()
     await services.save_cover_edit(vacancy_id, text)
+
+
+@router.callback_query(ReviewFlow.reviewing, F.data.startswith("rev:"))
+async def on_review(callback: CallbackQuery, services: Services, state: FSMContext) -> None:
+    """Вердикт владельца в диалоге /review: сверка со скором, запись расхождений, шаг вперёд.
+
+    Зарегистрирован ДО catch-all `on_label` — иначе тот перехватит `rev:*` ([C-E2]).
+    """
+    try:
+        verdict = parse_review_callback(callback.data or "")
+    except ValueError:
+        await callback.answer()
+        return
+
+    data = await state.get_data()
+    queue = data["queue"]
+    index = int(data["index"])
+    agreed = int(data["agreed"])
+
+    current = ReviewCandidate.model_validate(queue[index])
+    recorded = await services.record_review_verdict(current, verdict)
+    if recorded.agreed:
+        agreed += 1
+    index += 1
+    await callback.answer("Совпало со скором ✅" if recorded.agreed else "Расхождение записано 📝")
+
+    if index < len(queue):
+        await state.update_data(index=index, agreed=agreed)
+        nxt = ReviewCandidate.model_validate(queue[index])
+        await callback.message.answer(  # type: ignore[union-attr]
+            render_review_candidate(nxt, index=index, total=len(queue)),
+            reply_markup=build_review_keyboard(),
+        )
+        return
+
+    summary = ReviewSummary.of(agreed=agreed, total=len(queue))
+    await state.clear()
+    await callback.message.answer(render_review_summary(summary))  # type: ignore[union-attr]
 
 
 @router.callback_query()

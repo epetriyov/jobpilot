@@ -56,10 +56,17 @@ from app.application.change_status import Outcome as ChangeOutcome
 from app.application.classify_inbox import ClassifyInbox
 from app.application.extract_hr_details import ExtractHrDetails, ExtractHrResult
 from app.application.fewshot import FewShotSelectorPort, SemanticSelector
+from app.application.funnel_stats import FunnelReport, FunnelStats
 from app.application.generate_cover_letter import GenerateCoverLetter, GenerateCoverLetterResult
 from app.application.job_runner import run_job
 from app.application.label_vacancy import LabelVacancy
 from app.application.publish_resume import PublishResult, PublishResume
+from app.application.report_costs import CostReport, ReportCosts
+from app.application.review_agreement import (
+    RecordedVerdict,
+    ReviewAgreement,
+    ReviewCandidate,
+)
 from app.application.run_daily_digest import DigestResult, RunDailyDigest
 from app.application.save_vacancy import Outcome as SaveOutcome
 from app.application.save_vacancy import SaveVacancy
@@ -511,6 +518,44 @@ class Services:
     async def train_progress(self) -> tuple[int, int]:
         async with self._factory() as session:
             return await LabelRepository(session).counts()
+
+    # --- Аналитика (этап 6C): /stats, /costs, /review ---
+
+    async def funnel_stats(self) -> FunnelReport:
+        """/stats: воронка заявок + счётчики хранилища/разметки (только чтение)."""
+        async with self._factory() as session:
+            return await FunnelStats(
+                apps=ApplicationRepository(session),
+                vacancies=VacancyRepository(session),
+                labels=LabelRepository(session),
+            ).run()
+
+    async def report_costs(self, days: int = 30) -> CostReport:
+        """/costs: сумма `llm_call.cost_usd`/токенов за период (сверка ±5%, [C-I2])."""
+        async with self._factory() as session:
+            return await ReportCosts(costs=LlmCallRepository(session)).run(days=days)
+
+    async def start_review(self, n: int) -> list[ReviewCandidate]:
+        """/review: выборка N случайных скоренных вакансий (порог — DIGEST_SCORE_THRESHOLD)."""
+        async with self._factory() as session:
+            return await ReviewAgreement(
+                vacancies=VacancyRepository(session),
+                labels=LabelRepository(session),
+                threshold=self._settings.digest_score_threshold,
+            ).sample(n)
+
+    async def record_review_verdict(
+        self, candidate: ReviewCandidate, verdict: Verdict
+    ) -> RecordedVerdict:
+        """/review: сверить вердикт владельца со скором; расхождение → запись в `label`."""
+        async with self._factory() as session:
+            recorded = await ReviewAgreement(
+                vacancies=VacancyRepository(session),
+                labels=LabelRepository(session),
+                threshold=self._settings.digest_score_threshold,
+            ).record(candidate, verdict)
+            await session.commit()
+            return recorded
 
     # --- CRM (этап 6B): 💾 Сохранить, /saved, статусы/раунды/отказ, 🗑, ➕ собес ---
 
