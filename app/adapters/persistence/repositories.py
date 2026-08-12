@@ -263,14 +263,22 @@ class LabelRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def upsert(self, labeled: LabeledVacancyDTO) -> None:
-        """Повторная разметка обновляет вердикт существующей записи (T112)."""
+    async def upsert(
+        self, labeled: LabeledVacancyDTO, embedding: list[float] | None = None
+    ) -> None:
+        """Повторная разметка обновляет вердикт существующей записи (T112).
+
+        `embedding` (6D) — при наличии записывается/обновляется; None не трогает
+        существующий вектор (наполнит backfill-джоб).
+        """
         result = await self._session.execute(
             select(LabeledVacancy).where(LabeledVacancy.source_ref == labeled.source_ref.as_key())
         )
         existing = result.scalar_one_or_none()
         if existing is not None:
             existing.verdict = labeled.verdict
+            if embedding is not None:
+                existing.embedding = embedding
             return
         self._session.add(
             LabeledVacancy(
@@ -280,7 +288,51 @@ class LabelRepository:
                 url=labeled.url,
                 description_text=labeled.description_text,
                 verdict=labeled.verdict,
+                embedding=embedding,
             )
+        )
+
+    async def nearest(self, embedding: list[float], k: int = 10) -> list[LabeledVacancyDTO]:
+        """Ближайшие размеченные по cosine-дистанции (pgvector `<=>`); только с эмбеддингом."""
+        result = await self._session.execute(
+            select(LabeledVacancy)
+            .where(LabeledVacancy.embedding.is_not(None))
+            .order_by(LabeledVacancy.embedding.cosine_distance(embedding))
+            .limit(k)
+        )
+        return [self._to_dto(row) for row in result.scalars()]
+
+    async def missing_embeddings(self, limit: int = 200) -> list[LabeledVacancyDTO]:
+        result = await self._session.execute(
+            select(LabeledVacancy)
+            .where(LabeledVacancy.embedding.is_(None))
+            .order_by(LabeledVacancy.created_at.asc())
+            .limit(limit)
+        )
+        return [self._to_dto(row) for row in result.scalars()]
+
+    async def set_embedding(self, source_ref: SourceRef, embedding: list[float]) -> None:
+        await self._session.execute(
+            update(LabeledVacancy)
+            .where(LabeledVacancy.source_ref == source_ref.as_key())
+            .values(embedding=embedding)
+        )
+
+    async def embedded_count(self) -> int:
+        result = await self._session.execute(
+            select(func.count()).where(LabeledVacancy.embedding.is_not(None))
+        )
+        return int(result.scalar_one())
+
+    @staticmethod
+    def _to_dto(row: LabeledVacancy) -> LabeledVacancyDTO:
+        return LabeledVacancyDTO(
+            source_ref=_parse_source_ref(row.source_ref),
+            title=row.title,
+            company=row.company,
+            url=row.url,
+            description_text=row.description_text,
+            verdict=cast("Literal['relevant', 'irrelevant']", row.verdict),
         )
 
     async def counts(self) -> tuple[int, int]:
@@ -294,17 +346,7 @@ class LabelRepository:
         result = await self._session.execute(
             select(LabeledVacancy).order_by(LabeledVacancy.created_at.desc()).limit(limit)
         )
-        return [
-            LabeledVacancyDTO(
-                source_ref=_parse_source_ref(row.source_ref),
-                title=row.title,
-                company=row.company,
-                url=row.url,
-                description_text=row.description_text,
-                verdict=cast("Literal['relevant', 'irrelevant']", row.verdict),
-            )
-            for row in result.scalars()
-        ]
+        return [self._to_dto(row) for row in result.scalars()]
 
 
 class LlmCallRepository:

@@ -30,9 +30,10 @@ class LabelsFake:
         self.by_ref: dict[str, LabeledVacancy] = {}
         self.upserts = 0
 
-    async def upsert(self, labeled: LabeledVacancy) -> None:
+    async def upsert(self, labeled: LabeledVacancy, embedding: list[float] | None = None) -> None:
         self.upserts += 1
         self.by_ref[labeled.source_ref.as_key()] = labeled
+        self.last_embedding = embedding
 
     async def counts(self) -> tuple[int, int]:
         relevant = sum(1 for v in self.by_ref.values() if v.verdict == "relevant")

@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import structlog
 
-from app.domain.relevance import LlmScore, Score, VacancySnapshot, build_few_shot
+from app.application.fewshot import FewShotSelectorPort, RecentSelector, vacancy_text
+from app.domain.relevance import LlmScore, Score
 from app.domain.shared import PromptVersion
 from app.ports.llm import LlmPort
 from app.ports.repositories import LabelRepositoryPort, ScoringRepositoryPort
@@ -29,6 +30,7 @@ class ScoreVacancy:
         model_name: str,
         fewshot_limit: int = 10,
         fewshot_text_limit: int = 800,
+        selector: FewShotSelectorPort | None = None,
     ) -> None:
         self._llm = llm
         self._seen = seen_repo
@@ -38,24 +40,24 @@ class ScoreVacancy:
         self._model_name = model_name
         self._fewshot_limit = fewshot_limit
         self._fewshot_text_limit = fewshot_text_limit
+        # дефолт — «последние N» (R3); semantic инъектируется композицией по конфигу
+        self._selector: FewShotSelectorPort = selector or RecentSelector(
+            label_repo, limit=fewshot_limit, text_limit=fewshot_text_limit
+        )
 
     async def score_pending(self, limit: int = 200) -> int:
         """Скорит все ждущие вакансии; возвращает число успешно скоренных."""
-        labels = await self._labels.recent(self._fewshot_limit)
-        few_shot = build_few_shot(
-            labels, limit=self._fewshot_limit, text_limit=self._fewshot_text_limit
-        )
-
         pending = await self._seen.unscored(self._prompt_version.as_str(), limit)
-        log.info("scoring_start", pending=len(pending), fewshot_size=len(few_shot))
+        log.info("scoring_start", pending=len(pending))
 
         scored = 0
         for snapshot in pending:
+            few_shot = await self._selector.select_for(snapshot)
             llm_score = await self._llm.complete(
                 purpose="scoring",
                 prompt_version=self._prompt_version,
                 system=self._system_prompt,
-                data=_vacancy_text(snapshot),
+                data=vacancy_text(snapshot),
                 response_model=LlmScore,
                 few_shot=few_shot,
             )
@@ -76,7 +78,3 @@ class ScoreVacancy:
 
         log.info("scoring_finish", scored=scored, skipped=len(pending) - scored)
         return scored
-
-
-def _vacancy_text(snapshot: VacancySnapshot) -> str:
-    return f"{snapshot.title} — {snapshot.company}\n{snapshot.description_text}"

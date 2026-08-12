@@ -11,6 +11,8 @@ from pathlib import Path
 import structlog
 from aiogram import Bot
 
+from app.adapters.embeddings.fake import FakeEmbedder
+from app.adapters.embeddings.openrouter import OpenRouterEmbedder
 from app.adapters.getmatch.fake import FakeGetMatchSource
 from app.adapters.getmatch.source import GetMatchApiClient, GetMatchSource
 from app.adapters.gmail.fake import FakeGmailInbox
@@ -43,11 +45,13 @@ from app.adapters.telegram.crm_cards import SavedApplicationView
 from app.adapters.telegram.notifier import NullPublisher, TelegramNotifier
 from app.application.add_interview_details import AddInterviewDetails
 from app.application.add_interview_details import Outcome as DetailsOutcome
+from app.application.backfill_embeddings import BackfillEmbeddings
 from app.application.build_inbox_digest import BuildInboxDigest
 from app.application.build_invite_batch import BuildInviteBatch, InviteBatchResult
 from app.application.change_status import ChangeApplicationStatus
 from app.application.change_status import Outcome as ChangeOutcome
 from app.application.classify_inbox import ClassifyInbox
+from app.application.fewshot import FewShotSelectorPort, SemanticSelector
 from app.application.job_runner import run_job
 from app.application.label_vacancy import LabelVacancy
 from app.application.publish_resume import PublishResult, PublishResume
@@ -61,6 +65,7 @@ from app.config import Settings
 from app.domain.crm import ApplicationStatus, InterviewRoundKind, RejectStage
 from app.domain.relevance import LabeledVacancy, Verdict
 from app.domain.shared import PromptVersion
+from app.ports.embeddings import EmbeddingPort
 from app.ports.inbox import InboxPort
 from app.ports.notifier import PublisherPort
 from app.ports.sources import VacancySourcePort
@@ -249,13 +254,35 @@ class Services:
             return FakeLlm(recorder=recorder, model=f"fake/{kind}-stub", response_factory=factory)
         return InstructorOpenRouterLlm(settings=self._settings, recorder=recorder)
 
+    def _embedder(self, session: object) -> EmbeddingPort:
+        """EmbeddingPort (этап 6D): fake-стаб без ключей, иначе OpenRouter. Учёт O1."""
+        recorder = LlmCallRepository(session)  # type: ignore[arg-type]
+        if self._settings.resolved_llm_mode() == "fake":
+            return FakeEmbedder(recorder=recorder)
+        return OpenRouterEmbedder(settings=self._settings, recorder=recorder)
+
+    def _scoring_selector(
+        self, session: object, label_repo: LabelRepository
+    ) -> FewShotSelectorPort | None:
+        """Стратегия few-shot по конфигу (FEWSHOT_SELECTOR): semantic ∥ None→recent-дефолт."""
+        if self._settings.fewshot_selector != "semantic":
+            return None  # ScoreVacancy сам построит RecentSelector (дефолт, R3)
+        return SemanticSelector(
+            label_repo,
+            embedder=self._embedder(session),
+            limit=self._settings.fewshot_limit,
+            text_limit=self._settings.fewshot_text_limit,
+            min_embedded=self._settings.fewshot_min_embedded,
+        )
+
     async def run_digest(self) -> DigestResult:
         async with self._factory() as session:
             seen = SeenVacancyRepository(session)
+            label_repo = LabelRepository(session)
             scorer = ScoreVacancy(
                 llm=self._llm(session),
                 seen_repo=seen,
-                label_repo=LabelRepository(session),
+                label_repo=label_repo,
                 system_prompt=self._system_prompt,
                 prompt_version=SCORING_PROMPT_VERSION,
                 model_name=(
@@ -265,6 +292,7 @@ class Services:
                 ),
                 fewshot_limit=self._settings.fewshot_limit,
                 fewshot_text_limit=self._settings.fewshot_text_limit,
+                selector=self._scoring_selector(session, label_repo),
             )
             sources: list[VacancySourcePort] = list(self._sources())
             sources += self._getmatch_sources()
@@ -392,10 +420,21 @@ class Services:
                 seen_repo=SeenVacancyRepository(session),
                 label_repo=LabelRepository(session),
                 dataset=JsonlDatasetAppender(RELEVANCE_DATASET),
+                embedder=self._embedder(session),  # 6D: эмбеддинг при разметке (иначе backfill)
             )
             labeled = await use_case.label(ref_key, verdict)
             await session.commit()
             return labeled
+
+    async def backfill_embeddings(self, batch_limit: int = 200) -> int:
+        """6D: идемпотентно наполнить эмбеддинги исторических размеченных (ops/джоб)."""
+        async with self._factory() as session:
+            use_case = BackfillEmbeddings(
+                label_repo=LabelRepository(session), embedder=self._embedder(session)
+            )
+            done = await use_case.run(batch_limit)
+            await session.commit()
+            return done
 
     async def train_progress(self) -> tuple[int, int]:
         async with self._factory() as session:

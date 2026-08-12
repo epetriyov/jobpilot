@@ -12,6 +12,7 @@ import structlog
 
 from app.domain.relevance import LabeledVacancy, Verdict
 from app.domain.shared import Source, SourceRef
+from app.ports.embeddings import EmbeddingPort
 from app.ports.repositories import (
     DatasetAppenderPort,
     LabelRepositoryPort,
@@ -28,10 +29,13 @@ class LabelVacancy:
         seen_repo: ScoringRepositoryPort,
         label_repo: LabelRepositoryPort,
         dataset: DatasetAppenderPort,
+        embedder: EmbeddingPort | None = None,
     ) -> None:
         self._seen = seen_repo
         self._labels = label_repo
         self._dataset = dataset
+        # этап 6D: при наличии — считаем эмбеддинг сразу при разметке (иначе backfill-джоб)
+        self._embedder = embedder
 
     async def label(self, ref_key: str, verdict: Verdict) -> LabeledVacancy | None:
         snapshot = await self._seen.snapshot(_ref_from_key(ref_key))
@@ -40,7 +44,12 @@ class LabelVacancy:
             return None
 
         labeled = LabeledVacancy(**snapshot.model_dump(), verdict=verdict)
-        await self._labels.upsert(labeled)
+        embedding = None
+        if self._embedder is not None:
+            from app.application.fewshot import vacancy_text
+
+            embedding = await self._embedder.embed(vacancy_text(labeled))
+        await self._labels.upsert(labeled, embedding)
         self._dataset.append(
             {
                 "id": ref_key,

@@ -38,6 +38,8 @@ THRESHOLDS: dict[str, float] = {
     "relevance": 0.7,
     "mail_classify": 0.9,
     "invite_rubric": 0.9,
+    # relevance_selectors ([R-E2]): относительный порог — agreement(semantic) ≥ agreement(recent).
+    "relevance_selectors": 0.0,
 }
 
 
@@ -171,6 +173,91 @@ async def evaluate_relevance(model_b: str | None) -> int:
             f"ΔF1={metrics_b.f1 - metrics_a.f1:+.3f}"
         )
     return 0 if ok else 1
+
+
+async def evaluate_relevance_selectors() -> int:
+    """[R-E2] Сравнение few-shot-селекторов semantic vs «последние N» на датасете relevance.
+
+    Метрика — agreement rate (доля совпадений с эталоном) + F1. Порог: agreement
+    семантического ≥ базового. Отчёт с двумя строками в eval/reports/. В fake-режиме
+    стаб-скоринг не зависит от few-shot → строки совпадают (semantic ≥ recent держится);
+    содержательное сравнение — на real (OpenRouter) после кредов.
+    """
+    from eval.runners.relevance import _Recorder as RelRecorder
+    from eval.runners.relevance import make_embedder, score_dataset_with_selector
+
+    version, path = latest_version("relevance")
+    examples = load(path)
+    settings = Settings.load()
+    use_real = settings.resolved_llm_mode() == "real" and os.environ.get("EVAL_FAKE") != "1"
+    threshold = settings.digest_score_threshold
+    model = settings.llm_model_scoring
+
+    results = {}
+    all_records: list[LlmCallRecord] = []
+    for selector in ("recent", "semantic"):
+        rec = RelRecorder()
+        embedder = make_embedder(rec, use_real=use_real, settings=settings)
+        results[selector] = await score_dataset_with_selector(
+            examples,
+            selector=selector,  # type: ignore[arg-type]
+            model=model,
+            recorder=rec,
+            embedder=embedder,
+            use_real=use_real,
+            settings=settings,
+            threshold=threshold,
+        )
+        all_records += rec.records
+
+    recent, semantic = results["recent"], results["semantic"]
+    ok = semantic.agreement >= recent.agreement
+    report = _write_selectors_report(version, use_real, model, recent, semantic, all_records)
+    print(
+        f"[eval:relevance_selectors] model={model} "
+        f"recent: agreement={recent.agreement:.3f} F1={recent.f1:.3f} | "
+        f"semantic: agreement={semantic.agreement:.3f} F1={semantic.f1:.3f} | "
+        f"Δagreement={semantic.agreement - recent.agreement:+.3f} "
+        f"-> {'PASS' if ok else 'FAIL'}\nreport: {report.relative_to(ROOT)}"
+    )
+    return 0 if ok else 1
+
+
+def _write_selectors_report(version, use_real, model, recent, semantic, records) -> Path:  # type: ignore[no-untyped-def]
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y-%m-%d")
+    out = REPORTS / f"relevance_selectors_{stamp}.md"
+    cost = sum(r.cost_usd for r in records)
+    provider = "real (OpenRouter)" if use_real else "fake (стаб)"
+    ok = semantic.agreement >= recent.agreement
+    status = "✅ PASS" if ok else "❌ FAIL"
+    lines = [
+        f"# Eval report: relevance_selectors ({version})",
+        "",
+        f"- **Дата**: {stamp} · **Провайдер**: {provider} · **Примеров**: {recent.total}",
+        "- **Критерий [R-E2]**: agreement rate семантического селектора ≥ базового «последние N»",
+        f"- **Модель скоринга**: {model} · **Стоимость прогона**: ${cost:.6f}",
+        "",
+        "| Селектор | Agreement | F1 | TP | FP | FN | TN |",
+        "|---|---|---|---|---|---|---|",
+        f"| последние N (recent) | {recent.agreement:.3f} | {recent.f1:.3f} "
+        f"| {recent.tp} | {recent.fp} | {recent.fn} | {recent.tn} |",
+        f"| семантический (pgvector) | {semantic.agreement:.3f} | {semantic.f1:.3f} "
+        f"| {semantic.tp} | {semantic.fp} | {semantic.fn} | {semantic.tn} |",
+        "",
+        f"**Δagreement (semantic − recent)** = {semantic.agreement - recent.agreement:+.3f}",
+        "",
+        f"**Статус**: {status}",
+    ]
+    if not use_real:
+        lines += [
+            "",
+            "> ⚠️ fake-режим: стаб-скоринг детерминирован по тексту вакансии и не зависит "
+            "от few-shot — селекторы дают одинаковые метрики (порог ≥ выполняется). "
+            "Содержательное сравнение — на real (OpenRouter) после кредов.",
+        ]
+    out.write_text("\n".join(lines) + "\n")
+    return out
 
 
 async def evaluate_mail_classify() -> int:
@@ -435,6 +522,9 @@ async def main() -> None:
     if args.context == "relevance":
         code = await evaluate_relevance(args.model_b)
         raise SystemExit(code)
+
+    if args.context == "relevance_selectors":
+        raise SystemExit(await evaluate_relevance_selectors())
 
     if args.context == "mail_classify":
         raise SystemExit(await evaluate_mail_classify())

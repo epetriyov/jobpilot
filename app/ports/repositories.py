@@ -133,12 +133,32 @@ class DigestRepositoryPort(SeenVacancyRepositoryPort, ScoringRepositoryPort, Pro
 
 
 class LabelRepositoryPort(Protocol):
-    async def upsert(self, labeled: LabeledVacancy) -> None:
-        """Вердикт по source_ref: повторная разметка обновляет, не дублирует."""
+    async def upsert(self, labeled: LabeledVacancy, embedding: list[float] | None = None) -> None:
+        """Вердикт по source_ref: повторная разметка обновляет, не дублирует.
+
+        `embedding` (этап 6D) — вектор снапшота для семантического few-shot; None
+        оставляет колонку как есть (наполнит backfill-джоб).
+        """
         ...
 
     async def recent(self, limit: int = 10) -> list[LabeledVacancy]:
         """Few-shot «последние N» (R3)."""
+        ...
+
+    async def nearest(self, embedding: list[float], k: int = 10) -> list[LabeledVacancy]:
+        """Few-shot по семантической близости (pgvector `<=>`, cosine; этап 6D)."""
+        ...
+
+    async def missing_embeddings(self, limit: int = 200) -> list[LabeledVacancy]:
+        """Размеченные без эмбеддинга — вход идемпотентного backfill-джоба (6D)."""
+        ...
+
+    async def set_embedding(self, source_ref: SourceRef, embedding: list[float]) -> None:
+        """Записать эмбеддинг для размеченной вакансии по source_ref (6D)."""
+        ...
+
+    async def embedded_count(self) -> int:
+        """Сколько размеченных уже с эмбеддингом — порог фолбэка семантики (6D)."""
         ...
 
     async def counts(self) -> tuple[int, int]:

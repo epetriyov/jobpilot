@@ -88,6 +88,10 @@ class Settings(BaseSettings):
     digest_cron: str = Field("0 10 * * *", alias="DIGEST_CRON")
     fewshot_limit: int = Field(10, alias="FEWSHOT_LIMIT")
     fewshot_text_limit: int = Field(800, alias="FEWSHOT_TEXT_LIMIT")
+    # few-shot selector (этап 6D): `recent` (последние N, дефолт) | `semantic` (pgvector).
+    # semantic фолбэкает на recent, пока размеченных с эмбеддингами < fewshot_min_embedded.
+    fewshot_selector: Literal["recent", "semantic"] = Field("recent", alias="FEWSHOT_SELECTOR")
+    fewshot_min_embedded: int = Field(20, alias="FEWSHOT_MIN_EMBEDDED")
 
     @property
     def hh_sources(self) -> list[str]:
@@ -147,6 +151,8 @@ class Settings(BaseSettings):
     # инвайты (этап 3): flash-lite не тянет анти-штамп/роль-тон (eval invite_rubric) → flash
     llm_model_invite: str = Field("google/gemini-2.5-flash", alias="LLM_MODEL_INVITE")
     llm_model_judge: str = Field("google/gemini-2.5-flash", alias="LLM_MODEL_JUDGE")
+    # эмбеддинги (этап 6D): семантический few-shot; 768-мерная модель (data-model §3)
+    llm_model_embedding: str = Field("google/text-embedding-004", alias="LLM_MODEL_EMBEDDING")
     price_per_mtok_in: float = Field(0.10, alias="PRICE_PER_MTOK_IN")
     price_per_mtok_out: float = Field(0.40, alias="PRICE_PER_MTOK_OUT")
 
