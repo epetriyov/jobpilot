@@ -21,6 +21,7 @@ dependencies = [
     "telethon>=1.36",       # userbot HH-бота (пересмотр 2026-07-15; общий с GetMatch этапа 4)
     "playwright>=1.47",     # web-скрейпер рекомендаций HH + поднятие резюме
     "beautifulsoup4>=4.12",  # парс HTML рекомендаций (в адаптере hh/web_source)
+    "fastmcp>=3.4.7",
 ]
 
 [dependency-groups]
@@ -118,6 +119,20 @@ forbidden_modules = [
     "app.config",
     "app.obs",
     "app.runtime",
+]
+
+# MCP1 ([P-C2]): app/mcp — тонкий слой над use cases; не тянет persistence/SQLAlchemy.
+# Композиция БД для MCP живёт в app/runtime (mcp_backend/mcp_server).
+[[tool.importlinter.contracts]]
+name = "MCP layer is thin (no persistence/SQLAlchemy/runtime)"
+type = "forbidden"
+source_modules = ["app.mcp"]
+forbidden_modules = [
+    "sqlalchemy",
+    "alembic",
+    "app.adapters",
+    "app.runtime",
+    "app.config",
 ]
 
 [[tool.importlinter.contracts]]

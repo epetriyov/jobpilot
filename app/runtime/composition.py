@@ -314,7 +314,9 @@ class Services:
             min_embedded=self._settings.fewshot_min_embedded,
         )
 
-    async def run_digest(self) -> DigestResult:
+    async def run_digest(self, *, dry_run: bool | None = None) -> DigestResult:
+        """Дайджест; dry_run=None → берётся из настроек, иначе override (MCP run_digest)."""
+        effective_dry_run = self._settings.dry_run if dry_run is None else dry_run
         async with self._factory() as session:
             seen = SeenVacancyRepository(session)
             label_repo = LabelRepository(session)
@@ -341,7 +343,7 @@ class Services:
                 seen_repo=seen,
                 scorer=scorer,
                 notifier=TelegramNotifier(self._bot, self._settings.owner_chat_id),
-                dry_run=self._settings.dry_run,
+                dry_run=effective_dry_run,
                 threshold=self._settings.digest_score_threshold,
                 max_items=self._settings.digest_max_items,
                 canary_sites=set(self._settings.sites_canary),

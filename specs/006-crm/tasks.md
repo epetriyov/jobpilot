@@ -85,11 +85,11 @@
 
 > Зависимости: 6A + 6B + 6C. Схему не меняет (роль `mcp_ro` — ops-скрипт).
 
-- [ ] **T6F-1** [P-C2] Import-linter контракт + арх-тест: `app/mcp/` не импортирует `app.adapters.persistence`/SQLAlchemy — только `application/` (MCP1). → tests/mcp/test_layers.py
-- [ ] **T6F-2** [P-U1] `ports/mcp.py` — реестр инструментов с флагом `write`; фабрика падает при регистрации write вне `{set_status, run_digest}` (MCP2); тест перебирает все зарегистрированные. → tests/mcp/test_whitelist.py
-- [ ] **T6F-3** [P-C1] `app/mcp/` FastMCP-сервер (stdio, research §4): обязательный `MCP_AUTH_TOKEN` — запрос без/с неверным токеном → отказ до вызова инструмента (MCP3). → tests/mcp/test_auth.py
-- [ ] **T6F-4** Read-инструменты поверх use cases: `list_vacancies`, `get_vacancy`, `search_saved`, `get_costs`, `funnel_stats` (6A/6C); write: `set_status` (6B `change_status`), `run_digest(dry_run)` (существующий). Contract-тесты каждого инструмента.
-- [ ] **T6F-5** [P-I1][P-I2] Integration: read-роль `mcp_ro` (ops-скрипт деплоя + запись в quickstart/env) — запись мимо белого списка → ошибка прав БД ([P-I1]); `run_digest(dry_run=true)` → «ТЕСТ», внешних записей нет; `set_status` проходит статусную машину, недопустимый переход отвергнут как [C-U1] ([P-I2]). Compose profile `mcp`.
+- [x] **T6F-1** [P-C2] Import-linter контракт + арх-тест: `app/mcp/` не импортирует `app.adapters.persistence`/SQLAlchemy — только `application/` (MCP1). → tests/mcp/test_layers.py
+- [x] **T6F-2** [P-U1] `ports/mcp.py` — реестр инструментов с флагом `write`; фабрика падает при регистрации write вне `{set_status, run_digest}` (MCP2); тест перебирает все зарегистрированные. → tests/mcp/test_whitelist.py
+- [x] **T6F-3** [P-C1] `app/mcp/` FastMCP-сервер (stdio, research §4): обязательный `MCP_AUTH_TOKEN` — запрос без/с неверным токеном → отказ до вызова инструмента (MCP3). → tests/mcp/test_auth.py
+- [x] **T6F-4** Read-инструменты поверх use cases: `list_vacancies`, `get_vacancy`, `search_saved`, `get_costs`, `funnel_stats` (6A/6C); write: `set_status` (6B `change_status`), `run_digest(dry_run)` (существующий). Contract-тесты каждого инструмента.
+- [x] **T6F-5** [P-I1][P-I2] Integration: read-роль `mcp_ro` (ops-скрипт деплоя + запись в quickstart/env) — запись мимо белого списка → ошибка прав БД ([P-I1]); `run_digest(dry_run=true)` → «ТЕСТ», внешних записей нет; `set_status` проходит статусную машину, недопустимый переход отвергнут как [C-U1] ([P-I2]). Compose profile `mcp`.
 
 **Выход 6F**: MCP из Claude Desktop через туннель. **Приёмка**: SC-006.
 

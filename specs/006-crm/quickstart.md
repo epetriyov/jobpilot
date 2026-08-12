@@ -57,11 +57,12 @@ make eval CONTEXT=cover_letter        # hallucinations=0 (блокер) + руб
 ## 6F — MCP из Claude Desktop через туннель
 
 ```bash
-# на VPS роль mcp_ro (ops-скрипт деплоя, разово):
-psql -f deploy/mcp/create_ro_role.sql
-docker compose --profile mcp up -d mcp
+# на VPS роль mcp_ro (ops-скрипт деплоя, разово; пароль из секрета, не в репо):
+psql "$POSTGRES_DSN" -v mcp_ro_password="'<secret>'" -f deploy/mcp/create_ro_role.sql
+# в .env: MCP_AUTH_TOKEN=<секрет>, MCP_DB_DSN=postgresql+psycopg://mcp_ro:<secret>@db:5432/jobpilot
+docker compose --profile mcp run --rm mcp   # stdio; наружу порт не публикуется
 ```
-Claude Desktop → MCP-сервер по SSH-туннелю (stdio), `MCP_AUTH_TOKEN` из `.env`. Проверить:
+Claude Desktop → MCP-сервер по SSH-туннелю (stdio), `MCP_AUTH_TOKEN` из `.env` (клиент передаёт его полем `auth_token` в каждом вызове). Проверить:
 - read: `list_vacancies`, `search_saved`, `get_costs`, `funnel_stats`, `get_vacancy`;
 - write: `set_status` (проходит статусную машину; недопустимый переход отвергнут), `run_digest(dry_run=true)` → дайджест «ТЕСТ», внешних записей нет;
 - запрос без токена → отказ; попытка write вне белого списка невозможна (не зарегистрирован).
