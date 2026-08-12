@@ -94,6 +94,32 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # MCP-сервер (этап 6F): stdio, наружу порт НЕ публикуется (SSH-туннель, research §4).
+  # Профиль `mcp` off-by-default: `docker compose --profile mcp run --rm mcp`
+  # (обычно запускается по SSH из Claude Desktop, не как долгоживущий сервис).
+  mcp:
+    image: ${JOBPILOT_IMAGE:-jobpilot:local}  # тот же образ, что и bot/worker
+    build:
+      context: .
+      args:
+        INSTALL_BROWSERS: ${INSTALL_BROWSERS:-false}
+    profiles: ["mcp"]
+    command: python -m app.runtime.mcp_server
+    env_file: .env
+    stdin_open: true   # stdio-транспорт FastMCP
+    tty: false
+    environment:
+      POSTGRES_DSN: postgresql+psycopg://${POSTGRES_USER:-jobpilot}:${POSTGRES_PASSWORD:-jobpilot}@db:5432/${POSTGRES_DB:-jobpilot}
+      # read-инструменты под ролью mcp_ro (deploy/mcp/create_ro_role.sql); нет → основной пул
+      MCP_DB_DSN: ${MCP_DB_DSN:-}
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:-}   # секрет, обязателен (MCP3)
+      MCP_TRANSPORT: ${MCP_TRANSPORT:-stdio}
+      OTEL_SERVICE_NAME: jobpilot-mcp
+    depends_on:
+      db:
+        condition: service_healthy
+    # порт наружу НЕ публикуется намеренно — доступ только через SSH-туннель (UFW: только 22)
+
 volumes:
   pgdata:
   alloy-data:

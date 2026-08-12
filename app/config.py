@@ -230,6 +230,16 @@ class Settings(BaseSettings):
             )
         return self
 
+    # --- MCP-сервер (этап 6F; off-by-default, contracts/env.md) ---
+    # Секрет: обязателен, если MCP включён (проверяется в точке входа app/runtime/mcp_server.py).
+    mcp_auth_token: SecretStr | None = Field(None, alias="MCP_AUTH_TOKEN")
+    # DSN под ограниченной ролью mcp_ro (GRANT SELECT) для read-инструментов (MCP4, [P-I1]);
+    # роль создаётся ops-скриптом deploy/mcp/create_ro_role.sql, не миграцией. Нет → read
+    # идут под основной ролью (для dev/тестов).
+    mcp_db_dsn: SecretStr | None = Field(None, alias="MCP_DB_DSN")
+    mcp_transport: str = Field("stdio", alias="MCP_TRANSPORT")
+    mcp_enabled: bool = Field(False, alias="MCP_ENABLED")
+
     # --- observability ---
     otel_exporter_otlp_endpoint: str = Field(
         "http://alloy:4317", alias="OTEL_EXPORTER_OTLP_ENDPOINT"
@@ -258,5 +268,7 @@ class Settings(BaseSettings):
             self.hh_userbot_api_hash,
             self.gmail_client_secret,
             self.gmail_refresh_token,
+            self.mcp_auth_token,
+            self.mcp_db_dsn,
         ]
         return [s.get_secret_value() for s in secrets if s is not None]
