@@ -40,12 +40,14 @@ from app.domain.relevance import Score, VacancySnapshot
 from app.domain.shared import Source, SourceRef
 from app.domain.sourcing import Vacancy, content_hash
 from app.ports.llm import LlmCallRecord
-from app.ports.repositories import LabeledVacancy as LabeledVacancyDTO
 from app.ports.repositories import (
+    CostTotals,
     ScoredCandidate,
+    VacancyCounts,
     VacancyListFilter,
     VacancyRecord,
 )
+from app.ports.repositories import LabeledVacancy as LabeledVacancyDTO
 
 
 def _parse_source_ref(key: str) -> SourceRef:
@@ -260,6 +262,34 @@ class VacancyRepository:
         )
         return [_row_to_record(row) for row in result.scalars()]
 
+    # --- Аналитика (этап 6C, VacancyStatsReaderPort) ---
+
+    async def counts(self) -> VacancyCounts:
+        """(всего, скоренных) в хранилище — счётчики /stats."""
+        total = int(
+            (await self._session.execute(select(func.count()).select_from(VacancyRow))).scalar_one()
+        )
+        scored = int(
+            (
+                await self._session.execute(
+                    select(func.count())
+                    .select_from(VacancyRow)
+                    .where(VacancyRow.score.is_not(None))
+                )
+            ).scalar_one()
+        )
+        return VacancyCounts(total=total, scored=scored)
+
+    async def random_scored(self, limit: int) -> Sequence[VacancyRecord]:
+        """N случайных скоренных вакансий — вход /review (agreement rate)."""
+        result = await self._session.execute(
+            select(VacancyRow)
+            .where(VacancyRow.score.is_not(None))
+            .order_by(func.random())
+            .limit(limit)
+        )
+        return [_row_to_record(row) for row in result.scalars()]
+
 
 class LabelRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -369,6 +399,43 @@ class LlmCallRepository:
                 latency_ms=call.latency_ms,
                 trace_id=call.trace_id,
             )
+        )
+
+    async def totals(self, since: datetime, until: datetime) -> CostTotals:
+        """LlmCostReaderPort (6C): сумма cost_usd/токенов и разбивка по purpose за окно.
+
+        cost_usd — Numeric(12,6) → Decimal; наружу float для /costs и сверки ±5%.
+        """
+        result = await self._session.execute(
+            select(
+                LlmCall.purpose,
+                func.coalesce(func.sum(LlmCall.cost_usd), 0),
+                func.coalesce(func.sum(LlmCall.input_tokens), 0),
+                func.coalesce(func.sum(LlmCall.output_tokens), 0),
+                func.count(),
+            )
+            .where(LlmCall.created_at >= since)
+            .where(LlmCall.created_at <= until)
+            .group_by(LlmCall.purpose)
+        )
+        by_purpose: dict[str, float] = {}
+        total_usd = 0.0
+        input_tokens = 0
+        output_tokens = 0
+        calls = 0
+        for purpose, cost, in_tok, out_tok, cnt in result.all():
+            cost_f = float(cost)
+            by_purpose[purpose] = cost_f
+            total_usd += cost_f
+            input_tokens += int(in_tok)
+            output_tokens += int(out_tok)
+            calls += int(cnt)
+        return CostTotals(
+            total_usd=total_usd,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            calls=calls,
+            by_purpose=by_purpose,
         )
 
 

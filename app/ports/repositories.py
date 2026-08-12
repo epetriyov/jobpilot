@@ -16,19 +16,23 @@ from app.domain.sourcing import Vacancy
 
 __all__ = [
     "ApplicationRepositoryPort",
+    "CostTotals",
     "CoverLetterRepositoryPort",
     "DigestRepositoryPort",
     "JobRunRepositoryPort",
     "LabelRepositoryPort",
     "LabeledVacancy",
+    "LlmCostReaderPort",
     "ScoredCandidate",
     "ScoringRepositoryPort",
     "ScraperApprovalPort",
     "SeenVacancyRepositoryPort",
+    "VacancyCounts",
     "VacancyListFilter",
     "VacancyReaderPort",
     "VacancyRecord",
     "VacancyRepositoryPort",
+    "VacancyStatsReaderPort",
 ]
 
 
@@ -210,6 +214,51 @@ class ApplicationRepositoryPort(Protocol):
 
     async def funnel_counts(self) -> dict[str, int]:
         """Воронка по статусам для `/stats` (6C)."""
+        ...
+
+
+# --- Аналитика (этап 6C): /stats, /costs, /review ---
+
+
+class VacancyCounts(BaseModel):
+    """Счётчики хранилища `vacancy` для /stats: всего и скоренных (R1)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    total: int
+    scored: int
+
+
+class VacancyStatsReaderPort(Protocol):
+    """Аналитические чтения хранилища `vacancy` (этап 6C) — надстройка, сигнатуры
+    дедупа/скоринга и VacancyRepositoryPort не меняет."""
+
+    async def counts(self) -> VacancyCounts:
+        """(всего, скоренных) — счётчики для /stats."""
+        ...
+
+    async def random_scored(self, limit: int) -> Sequence[VacancyRecord]:
+        """N случайных скоренных вакансий — вход /review (agreement rate)."""
+        ...
+
+
+class CostTotals(BaseModel):
+    """Агрегат `llm_call` за период для /costs (инвариант O1)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    total_usd: float
+    input_tokens: int
+    output_tokens: int
+    calls: int
+    by_purpose: dict[str, float]
+
+
+class LlmCostReaderPort(Protocol):
+    """Чтение затрат LLM за период (`/costs`, сверка с Langfuse ±5%, [C-I2])."""
+
+    async def totals(self, since: datetime, until: datetime) -> CostTotals:
+        """Сумма cost_usd/токенов и разбивка по purpose за окно [since, until]."""
         ...
 
 
