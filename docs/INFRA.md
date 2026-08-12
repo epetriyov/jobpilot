@@ -85,7 +85,9 @@
 
 ## 5. Что сделать **до** апгрейда (снимает боль без денег)
 
-1. **Swap 2–4 GB — самое ценное одним действием.** Убирает спираль `kswapd0` и OOM:
+1. **Swap 4 GB — ✅ СДЕЛАНО (2026-08-12).** Активен `/swapfile` 4 GB, `vm.swappiness=10`,
+   прописан в `/etc/fstab`. Спираль `kswapd0`/OOM снята; Chromium (этап 5, Ozon) теперь
+   помещается на боксе. Команды, которыми делалось (для воспроизведения на новой машине):
    ```bash
    sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile
    sudo mkswap /swapfile && sudo swapon /swapfile
