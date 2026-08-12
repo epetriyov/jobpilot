@@ -1,0 +1,66 @@
+{
+  "resultCode": "OK",
+  "payload": {
+    "nextPagination": {
+      "it": { "offset": 4, "totalCount": 128 }
+    },
+    "vacancies": [
+      {
+        "title": "Руководитель группы разработки",
+        "subtitle": "Москва",
+        "category": "IT",
+        "regionId": "0c5b2444-70a0-4932-980c-b4dc0d3f02b5",
+        "shortDescription": "Ищем лидера команды бэкенда для платёжного контура.",
+        "salary": { "amount": "от 400 000 ₽", "details": [] },
+        "cities": [{ "name": "Москва" }],
+        "tags": [{ "name": "Ведущий" }, { "name": "Офис" }],
+        "urlSlug": "d60eaf9d-656c-48c5-8502-b13fbfa387db",
+        "seoSlug": "a86335e4-891c-4336-8121-d524a4f1a20e/rukovoditel-gruppy-razrabotki",
+        "source": "it",
+        "backend": "pfp"
+      },
+      {
+        "title": "Тимлид аналитики",
+        "subtitle": "Санкт-Петербург",
+        "category": "BACK_OFFICE",
+        "regionId": "c2deb16a-0330-4f05-821f-1d09c93331e6",
+        "shortDescription": "Развиваем продуктовую аналитику розничного бизнеса.",
+        "salary": { "amount": "от 250 000 до 350 000 ₽", "details": ["на руки"] },
+        "cities": [{ "name": "Санкт-Петербург" }],
+        "tags": [{ "name": "Ведущий" }, { "name": "Гибрид" }],
+        "urlSlug": "50bf8e82-3f7e-45ed-97c3-22977a8b878d",
+        "seoSlug": "b1c2d3e4-0000-4000-8000-000000000001/teamlid-analitiki",
+        "source": "back_office",
+        "backend": "pfp"
+      },
+      {
+        "title": "Head of Engineering",
+        "subtitle": "",
+        "category": "IT",
+        "regionId": null,
+        "shortDescription": "Отвечаешь за инженерную культуру продуктовой вертикали.",
+        "salary": null,
+        "cities": [{ "name": "Удалённо" }],
+        "tags": [],
+        "urlSlug": "f74b4f13-214f-42e2-93cc-c601831cb4e7",
+        "seoSlug": "a86335e4-891c-4336-8121-d524a4f1a20e/head-of-engineering",
+        "source": "it",
+        "backend": "pfp"
+      },
+      {
+        "title": "Lead Data Engineer",
+        "subtitle": "Екатеринбург",
+        "category": "IT",
+        "regionId": "2763c110-cb8b-416a-9dac-ad28a55b4402",
+        "shortDescription": "Строим data-платформу для антифрода.",
+        "salary": { "amount": "от 300 000 ₽", "details": ["на руки"] },
+        "cities": [{ "name": "Екатеринбург" }],
+        "tags": ["Senior", "Гибрид"],
+        "urlSlug": "2bef5e29-9a45-46b2-8bf2-ae9f7c50ba50",
+        "seoSlug": "a86335e4-891c-4336-8121-d524a4f1a20e/lead-data-engineer",
+        "source": "it",
+        "backend": "pfp"
+      }
+    ]
+  }
+}

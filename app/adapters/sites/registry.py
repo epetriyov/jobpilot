@@ -10,10 +10,26 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from app.adapters.sites.avito import avito_factory
 from app.adapters.sites.base import EscalateFn, SiteAdapter
+from app.adapters.sites.sber import sber_factory
+from app.adapters.sites.tbank import tbank_factory
+from app.adapters.sites.vk import vk_factory
+from app.adapters.sites.yandex import yandex_factory
 from app.config import Settings
 
 # Фабрика адаптера сайта: получает конфиг и опциональный колбэк эскалации анти-бота.
 SiteFactory = Callable[[Settings, EscalateFn | None], SiteAdapter]
 
-SITE_ADAPTERS: dict[str, SiteFactory] = {}
+# Волна A (лёгкие, httpx, текущее железо): подключение источника — off-by-default,
+# только через SITES_ACTIVE/SITES_CANARY владельца (guardrail scraping-risks.md).
+# Ozon (🔴) не реализуется; Альфа — после XHR-спайка владельца.
+# ⚠️ tbank: тело POST-запроса (source) требует подтверждения браузерным XHR перед
+# включением в SITES_ACTIVE (см. docstring tbank.py) — парсер/golden от этого не зависят.
+SITE_ADAPTERS: dict[str, SiteFactory] = {
+    "yandex": yandex_factory,
+    "vk": vk_factory,
+    "avito": avito_factory,
+    "sber": sber_factory,
+    "tbank": tbank_factory,
+}

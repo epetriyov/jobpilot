@@ -42,12 +42,12 @@
 > По одной задаче на сайт: golden красный → чистый парсер → адаптер (httpx) → подключение к
 > canary. Field completeness [S-C7]: title/url/company 100%, location ≥90%.
 
-- [ ] T510 [US1] [S-C7] **Яндекс** (yandex.ru/jobs): записать golden (SSR-HTML или JSON, если
+- [x] T510 [US1] [S-C7] **Яндекс** (yandex.ru/jobs): записать golden (SSR-HTML или JSON, если
   найден `yandex.ru/jobs/api/…`) → `parse_yandex` (красный [S-C8]) → `YandexAdapter(SiteAdapter)`
   → регистрация в `SITES_CANARY`. Salary «от X» → `(X,None)` (edge-case spec).
-- [ ] T511 [P] [US1] [S-C7] **VK** (team.vk.company/vacancy/): golden SSR-HTML → `parse_vk` →
+- [x] T511 [P] [US1] [S-C7] **VK** (team.vk.company/vacancy/): golden SSR-HTML → `parse_vk` →
   `VkAdapter` → canary.
-- [ ] T512 [P] [US1] [S-C7] **Avito** (career.avito.com/vacancies/): golden SSR-HTML → `parse_avito`
+- [x] T512 [P] [US1] [S-C7] **Avito** (career.avito.com/vacancies/): golden SSR-HTML → `parse_avito`
   → `AvitoAdapter` → canary. Внимание: career-сабдомен, НЕ avito.ru (research.md §2).
 
 ## Phase 3: Волна B — лёгкие-если-JSON (SPA + XHR-эндпоинт) — текущее железо при подтверждённом JSON
@@ -56,9 +56,9 @@
 > вакансий (XHR в devtools/прокси владельца). JSON подтверждён → лёгкий путь (httpx); эндпоинта
 > нет → переклассифицировать сайт в Волну C (Playwright, ⛔ЖЕЛЕЗО), зафиксировать в research.md.
 
-- [ ] T520 [US1] [S-C7] **Сбер** (rabota.sber.ru): спайк JSON-эндпоинта `/search` [OQ-1] →
+- [x] T520 [US1] [S-C7] **Сбер** (rabota.sber.ru): спайк JSON-эндпоинта `/search` [OQ-1] →
   golden (JSON) → `parse_sber` (красный [S-C8]) → `SberAdapter` (httpx) → canary. Нет JSON → C.
-- [ ] T521 [US1] [S-C7] **Т-Банк** (tbank.ru/career): спайк JSON-эндпоинта [OQ-1] → golden →
+- [x] T521 [US1] [S-C7] **Т-Банк** (tbank.ru/career): спайк JSON-эндпоинта [OQ-1] → golden →
   `parse_tbank` → `TbankAdapter` (httpx) → canary. Нет JSON → C.
 - [ ] T522 [US1] [S-C7] **Альфа** (job.alfabank.ru / digital.alfabank.ru): спайк JSON-эндпоинта +
   robots.txt [OQ-1]/[OQ-3] → golden → `parse_alfa` → `AlfaAdapter` (httpx) → canary. Нет JSON → C.

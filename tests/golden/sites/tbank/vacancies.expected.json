@@ -1,0 +1,42 @@
+[
+  {
+    "external_id": "d60eaf9d-656c-48c5-8502-b13fbfa387db",
+    "title": "Руководитель группы разработки",
+    "company": "tbank",
+    "url": "https://www.tbank.ru/career/it/vacancy/a86335e4-891c-4336-8121-d524a4f1a20e/rukovoditel-gruppy-razrabotki/d60eaf9d-656c-48c5-8502-b13fbfa387db/",
+    "location": "Москва",
+    "salary_from": 400000,
+    "salary_to": null,
+    "salary_currency": "RUR"
+  },
+  {
+    "external_id": "50bf8e82-3f7e-45ed-97c3-22977a8b878d",
+    "title": "Тимлид аналитики",
+    "company": "tbank",
+    "url": "https://www.tbank.ru/career/back-office/vacancy/b1c2d3e4-0000-4000-8000-000000000001/teamlid-analitiki/50bf8e82-3f7e-45ed-97c3-22977a8b878d/",
+    "location": "Санкт-Петербург",
+    "salary_from": 250000,
+    "salary_to": 350000,
+    "salary_currency": "RUR"
+  },
+  {
+    "external_id": "f74b4f13-214f-42e2-93cc-c601831cb4e7",
+    "title": "Head of Engineering",
+    "company": "tbank",
+    "url": "https://www.tbank.ru/career/it/vacancy/a86335e4-891c-4336-8121-d524a4f1a20e/head-of-engineering/f74b4f13-214f-42e2-93cc-c601831cb4e7/",
+    "location": "Удалённо",
+    "salary_from": null,
+    "salary_to": null,
+    "salary_currency": null
+  },
+  {
+    "external_id": "2bef5e29-9a45-46b2-8bf2-ae9f7c50ba50",
+    "title": "Lead Data Engineer",
+    "company": "tbank",
+    "url": "https://www.tbank.ru/career/it/vacancy/a86335e4-891c-4336-8121-d524a4f1a20e/lead-data-engineer/2bef5e29-9a45-46b2-8bf2-ae9f7c50ba50/",
+    "location": "Екатеринбург",
+    "salary_from": 300000,
+    "salary_to": null,
+    "salary_currency": "RUR"
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "external_id": "aaaaaaaa-0000-0000-0000-000000000001",
+    "title": "Engineering Manager",
+    "company": "sber",
+    "url": "https://rabota.sber.ru/search/4500001/",
+    "location": "г Москва",
+    "salary_from": null,
+    "salary_to": null,
+    "salary_currency": null
+  },
+  {
+    "external_id": "aaaaaaaa-0000-0000-0000-000000000002",
+    "title": "Руководитель разработки",
+    "company": "sber",
+    "url": "https://rabota.sber.ru/search/4500002/",
+    "location": "г Санкт-Петербург, Ленинградская область",
+    "salary_from": 400000,
+    "salary_to": 600000,
+    "salary_currency": "RUR"
+  },
+  {
+    "external_id": "aaaaaaaa-0000-0000-0000-000000000003",
+    "title": "Team Lead",
+    "company": "sber",
+    "url": "https://rabota.sber.ru/search/4500003/",
+    "location": "Республика Татарстан",
+    "salary_from": 350000,
+    "salary_to": null,
+    "salary_currency": "RUR"
+  },
+  {
+    "external_id": "aaaaaaaa-0000-0000-0000-000000000004",
+    "title": "Системный аналитик",
+    "company": "sber",
+    "url": "https://rabota.sber.ru/search/4500004/",
+    "location": "г Новосибирск",
+    "salary_from": null,
+    "salary_to": 250000,
+    "salary_currency": "RUR"
+  }
+]
