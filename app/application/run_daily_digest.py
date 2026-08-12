@@ -155,6 +155,7 @@ class RunDailyDigest:
                 salary_text=by_key[key].salary_text,
                 score=score.value,
                 reason=score.reason,
+                vacancy_id=by_key[key].vacancy_id,
             )
             for key, score in selected
         ]

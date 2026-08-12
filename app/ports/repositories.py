@@ -44,6 +44,9 @@ class ScoredCandidate(BaseModel):
     snapshot: VacancySnapshot
     score: Score
     salary_text: str | None = None
+    # id строки `vacancy` — для кнопки 💾 Сохранить (CRM 6B). None у не-персистентных
+    # фейков; в проде unsent_scored() читает из таблицы vacancy и всегда проставляет.
+    vacancy_id: int | None = None
 
 
 class ScoringRepositoryPort(Protocol):

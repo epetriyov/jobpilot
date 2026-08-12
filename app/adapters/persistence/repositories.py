@@ -168,6 +168,7 @@ class SeenVacancyRepository:
         )
         return [
             ScoredCandidate(
+                vacancy_id=row.id,
                 snapshot=_row_to_snapshot(row),
                 score=Score(
                     value=row.score or 0,
