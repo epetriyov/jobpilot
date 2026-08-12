@@ -1,0 +1,52 @@
+[
+  {
+    "external_id": "40001",
+    "title": "Engineering Manager (Platform)",
+    "company": "Ромашка Технологии",
+    "url": "https://getmatch.ru/vacancies/40001-engineering-manager-platform",
+    "location": "Москва",
+    "salary_from": 350000,
+    "salary_to": 480000,
+    "salary_currency": "RUB"
+  },
+  {
+    "external_id": "40002",
+    "title": "Head of Engineering",
+    "company": "Финтех Плюс",
+    "url": "https://getmatch.ru/vacancies/40002-head-of-engineering",
+    "location": "Санкт-Петербург",
+    "salary_from": null,
+    "salary_to": null,
+    "salary_currency": null
+  },
+  {
+    "external_id": "40003",
+    "title": "Team Lead (Backend)",
+    "company": "GetMatch (скрыто)",
+    "url": "https://getmatch.ru/vacancies/40003-team-lead-backend",
+    "location": "Удалённо",
+    "salary_from": 300000,
+    "salary_to": null,
+    "salary_currency": "RUB"
+  },
+  {
+    "external_id": "40005",
+    "title": "Engineering Manager (ML Platform)",
+    "company": "Дата Системы",
+    "url": "https://getmatch.ru/vacancies/40005-em-ml-platform",
+    "location": "Москва, Удалённо",
+    "salary_from": 420000,
+    "salary_to": null,
+    "salary_currency": "RUB"
+  },
+  {
+    "external_id": "40006",
+    "title": "Head of Platform Engineering",
+    "company": "Облако Технологии",
+    "url": "https://getmatch.ru/vacancies/40006-head-of-platform-engineering",
+    "location": "Москва",
+    "salary_from": null,
+    "salary_to": null,
+    "salary_currency": null
+  }
+]

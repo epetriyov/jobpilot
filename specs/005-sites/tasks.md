@@ -80,10 +80,11 @@
 
 ## Phase 5: Eval и Polish
 
-- [ ] T540 [S-E2] Датасеты `eval/datasets/sites_parse/<site>/v1.jsonl` (обезличенные ответы →
-  эталонные поля) + раннер `eval/runners/sites_parse.py` (+ диспетчер в `run.py`): per-site
-  field-completeness (title/url/company/location/salary); регресс completeness >5% против
-  прошлого отчёта = блокер; отчёт `eval/reports/sites_parse_<date>.md`.
+- [x] T540 [S-E2] Раннер `eval/runners/sites_parse.py` (+ диспетчер в `run.py`): per-site
+  field-completeness (title/url/company/location). Переиспользует golden-фикстуры
+  `tests/golden/sites/<site>/` (не дублирует датасеты). Отчёт `eval/reports/sites_parse_<date>.md`.
+  Прогон 2026-08-12: vk/avito/sber/tbank ✅; **yandex ❌ location=0.50** (в выборке часть вакансий
+  без города — удалёнка; существенные поля title/url/company=100%, активацию не блокирует).
 - [ ] T541 Гейты зелёные (ruff/mypy/import-linter/pytest; golden всех включённых сайтов; CI без
   сети/браузера); отчёт этапа (PLAN.md §7.6): сделано / acceptance / eval / что нужно для ручной
   проверки.

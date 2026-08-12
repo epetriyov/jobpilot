@@ -11,6 +11,8 @@ from pathlib import Path
 import structlog
 from aiogram import Bot
 
+from app.adapters.getmatch.fake import FakeGetMatchSource
+from app.adapters.getmatch.source import GetMatchApiClient, GetMatchSource
 from app.adapters.gmail.fake import FakeGmailInbox
 from app.adapters.gmail.source import GmailInbox
 from app.adapters.hh.fake import FakeHhVacancySource
@@ -88,6 +90,37 @@ def build_site_sources(
             continue
         sources.append(factory(settings, escalate))
     return sources
+
+
+def build_getmatch_sources(
+    settings: Settings,
+    *,
+    escalate: EscalateFn | None = None,
+) -> list[VacancySourcePort]:
+    """Источник GetMatch по флагу (этап 4, off-by-default, constitution VI).
+
+    `getmatch` не в SOURCES → пусто (выключен по умолчанию). Включён + fake →
+    детерминированный стаб (сеть не трогается). Включён + real → GetMatchSource
+    поверх httpx-клиента `/api/offers` (1 rps, честный UA, robots `Disallow:/api/`
+    — осознанное owner-решение, см. source.py). Падение изолируется коллектором (S4).
+    """
+    if "getmatch" not in settings.sources:
+        return []
+    if settings.resolved_getmatch_mode() == "fake":
+        return [FakeGetMatchSource()]
+    client = GetMatchApiClient(
+        api_url=settings.getmatch_api_url,
+        user_agent=settings.getmatch_user_agent,
+        pause_sec=settings.getmatch_request_pause_sec,
+        timeout_sec=settings.getmatch_timeout_sec,
+    )
+    return [
+        GetMatchSource(
+            client=client,
+            page_limit=settings.getmatch_page_limit,
+            escalate=escalate,
+        )
+    ]
 
 
 def _system_prompt() -> str:
@@ -169,6 +202,14 @@ class Services:
 
         return build_site_sources(self._settings, escalate=escalate)
 
+    def _getmatch_sources(self) -> list[VacancySourcePort]:
+        """Источник GetMatch по флагу SOURCES (этап 4, off-by-default). Падение — S4."""
+
+        async def escalate(text: str) -> None:
+            await TelegramNotifier(self._bot, self._settings.owner_chat_id).send_message(text)
+
+        return build_getmatch_sources(self._settings, escalate=escalate)
+
     async def approve_scraper(self, site: str) -> tuple[ApprovalOutcome, list[str]]:
         """US3: одобрить сайт-скрейпер. Неизвестный → отказ + список доступных."""
         if not is_known_site(site):
@@ -216,6 +257,7 @@ class Services:
                 fewshot_text_limit=self._settings.fewshot_text_limit,
             )
             sources: list[VacancySourcePort] = list(self._sources())
+            sources += self._getmatch_sources()
             sources += self._site_sources()
             digest = RunDailyDigest(
                 sources=sources,

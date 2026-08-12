@@ -17,6 +17,8 @@ KNOWN_SITES: frozenset[str] = frozenset({"yandex", "vk", "avito", "tbank", "ozon
 # Минимальная пауза между запросами к одному порталу — вежливость ≥1 rps
 # (scraping-risks.md guardrail; жёсткий нижний предел, не настраивается вниз).
 SITES_MIN_RATE_LIMIT_SEC = 1.0
+# Тот же вежливый нижний предел паузы для GetMatch (`/api/offers`, 1 rps).
+GETMATCH_MIN_PAUSE_SEC = 1.0
 
 
 def _split_sites(raw: str) -> list[str]:
@@ -148,6 +150,29 @@ class Settings(BaseSettings):
     price_per_mtok_in: float = Field(0.10, alias="PRICE_PER_MTOK_IN")
     price_per_mtok_out: float = Field(0.40, alias="PRICE_PER_MTOK_OUT")
 
+    # --- GetMatch (этап 4; публичный JSON /api/offers, off-by-default, contracts/env.md) ---
+    # Единый список активных адаптеров-источников; getmatch добавляется осознанно
+    # (owner-approval после canary, constitution VI). Секретов у источника нет.
+    sources_raw: str = Field("email", alias="SOURCES")
+    getmatch_mode: Literal["auto", "fake", "real"] = Field("fake", alias="GETMATCH_MODE")
+    getmatch_api_url: str = Field("https://getmatch.ru/api/offers", alias="GETMATCH_API_URL")
+    getmatch_user_agent: str = Field(
+        "JobPilot/0.1 (personal-agent; owner-contact)", alias="GETMATCH_USER_AGENT"
+    )
+    getmatch_request_pause_sec: float = Field(1.0, alias="GETMATCH_REQUEST_PAUSE_SEC")
+    getmatch_page_limit: int = Field(20, alias="GETMATCH_PAGE_LIMIT")
+    getmatch_timeout_sec: float = Field(20.0, alias="GETMATCH_TIMEOUT_SEC")
+
+    @property
+    def sources(self) -> list[str]:
+        return [s.strip() for s in self.sources_raw.split(",") if s.strip()]
+
+    def resolved_getmatch_mode(self) -> Literal["fake", "real"]:
+        """auto: real при включении getmatch в SOURCES, иначе стаб; выключен по умолчанию."""
+        if self.getmatch_mode != "auto":
+            return self.getmatch_mode
+        return "real" if "getmatch" in self.sources else "fake"
+
     # --- сайты-скрейперы (этап 5; off-by-default guardrail, contracts/env.md) ---
     sites_active_raw: str = Field("", alias="SITES_ACTIVE")
     sites_canary_raw: str = Field("", alias="SITES_CANARY")
@@ -191,6 +216,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"SITES_RATE_LIMIT_SEC={self.sites_rate_limit_sec} нарушает вежливость "
                 f"≥{SITES_MIN_RATE_LIMIT_SEC} s между запросами (scraping-risks.md)"
+            )
+        if self.getmatch_request_pause_sec < GETMATCH_MIN_PAUSE_SEC:
+            raise ValueError(
+                f"GETMATCH_REQUEST_PAUSE_SEC={self.getmatch_request_pause_sec} нарушает "
+                f"вежливость ≥{GETMATCH_MIN_PAUSE_SEC} s между страницами (scraping-risks.md)"
             )
         return self
 

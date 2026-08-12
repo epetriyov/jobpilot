@@ -1,0 +1,26 @@
+{
+  "meta": { "total": 3, "offset": 0, "limit": 20 },
+  "offers": [
+    {
+      "id": 50001,
+      "company": { "id": 601, "name": "Формат Сломан" },
+      "url": "/vacancies/50001-no-position",
+      "salary_hidden": true,
+      "offer_description": "<p>Нет поля position — offer в raw, VacancyDTO не создаётся ([S-C6]).</p>"
+    },
+    {
+      "id": 50002,
+      "position": "Есть position, но нет url",
+      "company": { "id": 602, "name": "Без Ссылки" },
+      "salary_hidden": true,
+      "offer_description": "<p>Нет поля url — offer в raw ([S-C6]).</p>",
+      "is_active": true
+    },
+    {
+      "id": 50003,
+      "headline": "совсем другая схема полей",
+      "employer": "Неизвестный ключ",
+      "link": "/vacancies/50003-alien-schema"
+    }
+  ]
+}

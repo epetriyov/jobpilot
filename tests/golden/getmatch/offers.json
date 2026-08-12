@@ -1,0 +1,126 @@
+{
+  "meta": { "total": 6, "offset": 0, "limit": 20 },
+  "offers": [
+    {
+      "id": 40001,
+      "position": "Engineering Manager (Platform)",
+      "company": { "id": 501, "name": "Ромашка Технологии", "logotype": null },
+      "url": "/vacancies/40001-engineering-manager-platform",
+      "salary_display_from": 350000,
+      "salary_display_to": 480000,
+      "salary_currency": "RUB",
+      "salary_hidden": false,
+      "salary_taxes": "net",
+      "offer_description": "<b>Команда платформы</b>\n<p>Ищем EM в команду из 12 инженеров: процессы, найм, 1:1.</p>",
+      "skills_objects": [
+        { "name": "Python", "slug": "python", "is_custom": false },
+        { "name": "Kubernetes", "slug": "kubernetes", "is_custom": false }
+      ],
+      "location_items": [{ "label": "Москва", "format": "office", "exclude": false }],
+      "published_at": "2026-08-04T11:04:38",
+      "is_active": true,
+      "offer_type": "one_day_offer_v3",
+      "type": "only_web"
+    },
+    {
+      "id": 40002,
+      "position": "Head of Engineering",
+      "company": { "id": 502, "name": "Финтех Плюс", "logotype": null },
+      "url": "/vacancies/40002-head-of-engineering",
+      "salary_display_from": null,
+      "salary_display_to": null,
+      "salary_currency": null,
+      "salary_hidden": true,
+      "salary_taxes": "gross",
+      "offer_description": "<p>Руководство разработкой: 3 команды, 25 человек, стратегия и найм.</p>",
+      "skills_objects": [
+        { "name": "Go", "slug": "go", "is_custom": false },
+        { "name": "PostgreSQL", "slug": "postgresql", "is_custom": false }
+      ],
+      "location_items": [{ "label": "Санкт-Петербург", "format": "hybrid", "exclude": false }],
+      "published_at": "2026-08-03T09:20:11",
+      "is_active": true,
+      "offer_type": "one_day_offer_v3",
+      "type": "only_web"
+    },
+    {
+      "id": 40003,
+      "position": "Team Lead (Backend)",
+      "company": { "id": null, "name": null, "logotype": null },
+      "url": "/vacancies/40003-team-lead-backend",
+      "salary_display_from": 300000,
+      "salary_display_to": null,
+      "salary_currency": "RUB",
+      "salary_hidden": false,
+      "salary_taxes": "net",
+      "offer_description": "<p>Тимлид backend-команды (6 инженеров), инкогнито-публикация.</p>",
+      "skills_objects": [{ "name": "Java", "slug": "java", "is_custom": false }],
+      "location_items": [{ "label": "Удалённо", "format": "remote", "exclude": false }],
+      "published_at": "2026-08-02T14:45:00",
+      "is_active": true,
+      "offer_type": "one_day_offer_v3",
+      "type": "only_web",
+      "incognito_publication": true
+    },
+    {
+      "id": 40004,
+      "position": "Руководитель группы разработки (закрытая)",
+      "company": { "id": 504, "name": "Маркетплейс Юг", "logotype": null },
+      "url": "/vacancies/40004-rukovoditel-gruppy",
+      "salary_display_from": 400000,
+      "salary_display_to": 550000,
+      "salary_currency": "RUB",
+      "salary_hidden": false,
+      "salary_taxes": "net",
+      "offer_description": "<p>Вакансия уже закрыта — не должна попасть в дайджест.</p>",
+      "skills_objects": [{ "name": "Kotlin", "slug": "kotlin", "is_custom": false }],
+      "location_items": [{ "label": "Ростов-на-Дону", "format": "office", "exclude": false }],
+      "published_at": "2026-07-20T10:00:00",
+      "is_active": false,
+      "offer_type": "one_day_offer_v3",
+      "type": "only_web"
+    },
+    {
+      "id": 40005,
+      "position": "Engineering Manager (ML Platform)",
+      "company": { "id": 505, "name": "Дата Системы", "logotype": null },
+      "url": "/vacancies/40005-em-ml-platform",
+      "salary_display_from": 420000,
+      "salary_display_to": null,
+      "salary_currency": "RUB",
+      "salary_hidden": false,
+      "salary_taxes": "gross",
+      "offer_description": "<b>ML-платформа</b><ul><li>команда 9 человек</li><li>MLOps, менторинг лидов</li></ul>",
+      "skills_objects": [
+        { "name": "Python", "slug": "python", "is_custom": false },
+        { "name": "MLOps", "slug": "mlops", "is_custom": true }
+      ],
+      "location_items": [
+        { "label": "Москва", "format": "hybrid", "exclude": false },
+        { "label": "Удалённо", "format": "remote", "exclude": false }
+      ],
+      "published_at": "2026-08-01T08:10:05",
+      "is_active": true,
+      "offer_type": "one_day_offer_v3",
+      "type": "only_web"
+    },
+    {
+      "id": 40006,
+      "position": "Head of Platform Engineering",
+      "company": { "id": 506, "name": "Облако Технологии", "logotype": null },
+      "url": "/vacancies/40006-head-of-platform-engineering",
+      "salary_display_from": null,
+      "salary_display_to": null,
+      "salary_currency": null,
+      "salary_hidden": true,
+      "salary_taxes": "net",
+      "offer_description": "<p>Платформенное направление (4 команды), highload, найм лидов.</p>",
+      "skills_objects": [{ "name": "Go", "slug": "go", "is_custom": false }],
+      "location_items": [{ "label": "Москва", "format": "office", "exclude": false }],
+      "published_at": "2026-07-31T12:00:00",
+      "is_active": true,
+      "offer_type": "one_day_offer_v3",
+      "type": "only_web"
+    }
+  ]
+}

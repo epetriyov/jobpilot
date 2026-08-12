@@ -294,6 +294,73 @@ def _write_invite_report(version, use_real, m, records) -> Path:  # type: ignore
     return out
 
 
+def evaluate_sites_parse() -> int:
+    """[S-C7] Контекст sites_parse: field-completeness парсеров сайтов. Возврат — код выхода."""
+    from eval.runners.sites_parse import THRESHOLDS as SITE_THRESHOLDS
+    from eval.runners.sites_parse import evaluate_sites
+
+    reports = evaluate_sites()
+    ok = all(r.ok for r in reports)
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y-%m-%d")
+    out = REPORTS / f"sites_parse_{stamp}.md"
+    lines = [
+        "# Eval report: sites_parse",
+        "",
+        f"- **Дата**: {stamp} · **Провайдер**: golden (без сети/LLM)",
+        "- **Критерий [S-C7]**: title/url/company = 100%, location ≥ 90%",
+        "",
+        "| Сайт | Вакансий | title | url | company | location | Статус |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for r in sorted(reports, key=lambda x: x.site):
+        c = r.completeness
+        lines.append(
+            f"| {r.site} | {r.count} | {c['title']:.2f} | {c['url']:.2f} "
+            f"| {c['company']:.2f} | {c['location']:.2f} | {'✅' if r.ok else '❌'} |"
+        )
+    lines += [
+        "",
+        f"**Пороги**: {SITE_THRESHOLDS}",
+        "",
+        f"**Статус**: {'✅ PASS' if ok else '❌ FAIL'}",
+    ]
+    out.write_text("\n".join(lines) + "\n")
+    for r in reports:
+        c = r.completeness
+        print(
+            f"[eval:sites_parse] {r.site}: n={r.count} title={c['title']:.2f} "
+            f"url={c['url']:.2f} company={c['company']:.2f} location={c['location']:.2f} "
+            f"-> {'PASS' if r.ok else 'FAIL'}"
+        )
+    print(f"report: {out.relative_to(ROOT)}")
+    return 0 if ok else 1
+
+
+def evaluate_getmatch_parse() -> int:
+    """[S-E1] Контекст getmatch_parse: accuracy title/company/url ≥0.95. Возврат — код выхода."""
+    from eval.runners.getmatch_parse import evaluate_getmatch
+
+    m = evaluate_getmatch()
+    ok = m.accuracy >= 0.95
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y-%m-%d")
+    out = REPORTS / f"getmatch_parse_{stamp}.md"
+    out.write_text(
+        f"# Eval report: getmatch_parse\n\n"
+        f"- **Дата**: {stamp} · **Провайдер**: golden (без сети/LLM)\n"
+        f"- **Критерий [S-E1]**: accuracy title/company/url ≥0.95\n\n"
+        f"| accuracy | correct | total |\n|---|---|---|\n"
+        f"| {m.accuracy:.3f} | {m.correct} | {m.total} |\n\n"
+        f"**Статус**: {'✅ PASS' if ok else '❌ FAIL'}\n"
+    )
+    print(
+        f"[eval:getmatch_parse] accuracy={m.accuracy:.3f} ({m.correct}/{m.total}) "
+        f"-> {'PASS' if ok else 'FAIL'}\nreport: {out.relative_to(ROOT)}"
+    )
+    return 0 if ok else 1
+
+
 def _dedup_count(examples: list[dict]) -> dict:  # type: ignore[type-arg]
     return {ex["id"]: ex for ex in examples}
 
@@ -374,6 +441,12 @@ async def main() -> None:
 
     if args.context == "invite_rubric":
         raise SystemExit(await evaluate_invite_rubric())
+
+    if args.context == "sites_parse":
+        raise SystemExit(evaluate_sites_parse())
+
+    if args.context == "getmatch_parse":
+        raise SystemExit(evaluate_getmatch_parse())
 
     result = await evaluate(args.context)
     report = write_report(result)
