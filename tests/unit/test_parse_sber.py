@@ -9,9 +9,18 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from app.adapters.sites.sber import parse_sber, sber_factory
 from app.config import Settings
 from tests.golden.sites.harness import assert_golden, load_expected, load_payload
+
+REQUIRED = {
+    "TELEGRAM_API_TOKEN": "123456:test-telegram-token",
+    "OWNER_CHAT_ID": "100500",
+    "OPENROUTER_API_KEY": "sk-or-test-key",
+    "POSTGRES_DSN": "postgresql+psycopg://jobpilot:jobpilot@localhost:5432/jobpilot",
+}
 
 
 def test_parse_sber_golden() -> None:
@@ -71,6 +80,8 @@ def test_parse_sber_external_id_falls_back_to_internal_id() -> None:
     assert result[0].source_ref.external_id == "555"
 
 
-def test_sber_factory_builds_site_adapter() -> None:
-    adapter = sber_factory(Settings(), None)
+def test_sber_factory_builds_site_adapter(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name, value in REQUIRED.items():
+        monkeypatch.setenv(name, value)
+    adapter = sber_factory(Settings.load(env_file=None), None)
     assert adapter.name == "sber"
