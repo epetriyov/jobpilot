@@ -12,10 +12,10 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
-from urllib.robotparser import RobotFileParser
 
 import httpx
 import structlog
+from protego import Protego
 
 from app.adapters.sites.transport import (
     AntiBotError,
@@ -115,9 +115,12 @@ class HttpTransport:
             self._robots_checked = True  # robots недоступен — не блокируем (best-effort)
             return
         if resp.status_code == 200 and resp.text:
-            parser = RobotFileParser()
-            parser.parse(resp.text.splitlines())
-            if not parser.can_fetch(self._user_agent, self._url):
+            # protego (парсер Scrapy) верно трактует `/?`, `*`-wildcard и `$`-якорь,
+            # где stdlib RobotFileParser ошибочно нормализует `Disallow: /?` в `/`.
+            # ВНИМАНИЕ: у protego порядок аргументов can_fetch(url, user_agent) —
+            # обратный urllib (useragent, url).
+            parser = Protego.parse(resp.text)
+            if not parser.can_fetch(self._url, self._user_agent):
                 raise RobotsDisallowedError(
                     f"robots.txt запрещает {self._url} для UA {self._user_agent}"
                 )

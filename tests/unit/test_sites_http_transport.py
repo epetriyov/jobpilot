@@ -120,6 +120,44 @@ class TestRobots:
         transport, _ = build(handler, robots_respect=False)
         assert await transport.fetch() == "ok"
 
+    async def test_query_root_disallow_does_not_block_path(self) -> None:
+        """Регресс: `Disallow: /?` (квирк Яндекса — блок только query-root `/?...`)
+        НЕ должен блокировать обычный путь `/jobs/vacancies`. stdlib RobotFileParser
+        нормализует правило в `Disallow: /` и роняет весь сайт — protego парсит верно."""
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/robots.txt":
+                return robots(
+                    "User-agent: *\nDisallow: /?\nDisallow: /jobs/skill-diagnostic/private/*\n"
+                )
+            return httpx.Response(200, text="<html>vac</html>")
+
+        transport, _ = build(handler)
+        assert await transport.fetch() == "<html>vac</html>"
+
+    async def test_real_prohibition_still_blocks(self) -> None:
+        """Реальный запрет обязан продолжать блокировать: `Disallow: /api/` на
+        целевом пути `/api/offers` → RobotsDisallowedError (не ослабляем guardrail)."""
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/robots.txt":
+                return robots("User-agent: *\nDisallow: /api/\n")
+            return httpx.Response(200, text="should-not-reach")
+
+        clock = Clock()
+        sleep = SleepSpy(clock)
+        transport = HttpTransport(
+            url="https://getmatch.ru/api/offers",
+            user_agent=UA,
+            rate_limit_sec=1.0,
+            timeout_sec=5.0,
+            client=make_client(handler),
+            sleep=sleep,
+            clock=clock,
+        )
+        with pytest.raises(RobotsDisallowedError):
+            await transport.fetch()
+
 
 class TestFailures:
     async def test_5xx_retries_then_http_error(self) -> None:
