@@ -156,6 +156,37 @@ class TestFailures:
         with pytest.raises(AntiBotError):
             await transport.fetch()
 
+    async def test_smartcaptcha_wall_is_anti_bot(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/robots.txt":
+                return robots()
+            return httpx.Response(200, text="<html><body>SmartCaptcha checkpoint</body></html>")
+
+        transport, _ = build(handler)
+        with pytest.raises(AntiBotError):
+            await transport.fetch()
+
+    async def test_captcha_sdk_reference_is_not_anti_bot(self) -> None:
+        """Регресс: легитимная страница со ссылкой на captcha-SDK (виджет логина) —
+        НЕ анти-бот. VK Team отдаёт вакансии на 200 с `initialVacancies`, но в теле
+        висит `static.vk.ru/captchaSDK/loader` для формы входа — голый маркер
+        `captcha` ложно ронял рабочий источник в AntiBotError."""
+        vk_body = (
+            "<html><head><title>Вакансии</title></head><body>"
+            '<script src="https://static.vk.ru/captchaSDK/loader/1/umd/index.js" defer></script>'
+            '<script id="__NEXT_DATA__" type="application/json">'
+            '{"props":{"pageProps":{"initialVacancies":[{"id":52461,"title":"Секретарь"}]}}}'
+            "</script></body></html>"
+        )
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path == "/robots.txt":
+                return robots()
+            return httpx.Response(200, text=vk_body)
+
+        transport, _ = build(handler)
+        assert await transport.fetch() == vk_body
+
     async def test_empty_body_is_empty_error(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             if request.url.path == "/robots.txt":

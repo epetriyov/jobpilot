@@ -26,9 +26,16 @@ from app.adapters.sites.transport import (
 
 log = structlog.get_logger("adapters.sites.http")
 
-# Маркеры анти-бот-стены в теле ответа (лёгкий сайт «тихо» включил защиту, R-2).
+# Маркеры анти-бот-СТЕНЫ в теле ответа (лёгкий сайт «тихо» включил защиту, R-2).
+# Не голое «captcha»: легитимная страница может ссылаться на captcha-SDK формы
+# логина (VK Team: static.vk.ru/captchaSDK/loader) и при этом отдавать вакансии
+# на 200 — это НЕ блок. Матчим фразы/бренды именно челлендж-интерстишела.
 _ANTI_BOT_MARKERS = (
-    "captcha",
+    "smartcaptcha",  # Яндекс SmartCaptcha (страница-челлендж)
+    "showcaptcha",  # Яндекс checkpoint
+    "complete the captcha",
+    "solve the captcha",
+    "verify you are human",
     "qrator",
     "cf-browser-verification",
     "attention required",
