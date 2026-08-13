@@ -16,16 +16,13 @@
   salary       ← salary.amount («от X [до Y] ₽») → Salary(from?, to?, RUR)
   description  ← shortDescription + грейд/формат-теги (tags)
 
-Заметка по телу POST (открытый пункт для system-architect):
-  Эндпоинт живой и НЕ анти-бот — на невалидное тело отвечает структурированным
-  JSON `{"resultCode":"INTERNAL_ERROR", "errorMessage":"...источник ... не валидный"}`
-  (HTTP 503), а не капчей/стеной. getVacancies требует валидный `source` в теле:
-  он выдаётся компаньон-вызовом (getSources/getFilters) — на спайке 2026-08-12
-  перебор очевидных значений (it / back_office / tcareer_* / group-uuid) не прошёл
-  серверную валидацию. Тело ниже кодирует подтверждённую структуру (source +
-  pagination.offset); значение `source` нужно зафиксировать живым XHR-спайком в
-  браузере до активации адаптера (SITES_ACTIVE). Golden от этого не зависит:
-  парсер тестируется на записанной структуре ответа (транспорт ↔ парсер).
+Тело POST (закрыто XHR-спайком 2026-08-13):
+  Ранее getVacancies отвечал 503 на гаданное тело (не капча/анти-бот, а серверная
+  валидация «источника»). Живой браузерный спайк показал: «источник» — это не поле
+  `source`, а структура `filters.generatedGraphQL` (`type:T_CAREER`, `category`,
+  `tagSlugs`). Подтверждено: honest UA, без кук, HTTP 200 `{"resultCode":"OK",
+  "payload":{"vacancies":[...]}}` с прод-IP → эндпоинт публичный. Тело в `_REQUEST_BODY`.
+  Golden не зависит от тела: парсер тестируется на записанной структуре ответа.
 """
 
 from __future__ import annotations
@@ -45,9 +42,24 @@ from app.domain.sourcing import Vacancy
 _SITE = "tbank"
 _BASE = "https://www.tbank.ru"
 _ENDPOINT = f"{_BASE}/pfpjobs/papi/getVacancies"
-_PAGE_LIMIT = 100
-# Открытый пункт: реальное значение `source` подтвердить браузерным XHR-спайком.
-_REQUEST_SOURCE = "it"
+# Тело POST подтверждено браузерным XHR-спайком 2026-08-13 (честный UA, без кук,
+# HTTP 200 с прод-IP): публичный эндпоинт, авторизации/кук не требует. Фильтр —
+# IT + опыт head/lead (`tcareer-it-experience-head`) по всей РФ (без searchFiasIds).
+# Пагинация per-category: пустой объект отдаёт первую страницу (~10 карточек) —
+# достаточно для персонального дайджеста (лёгкая волна, одна вежливая страница).
+_REQUEST_BODY: dict[str, object] = {
+    "filters": {
+        "generatedGraphQL": {
+            "type": "T_CAREER",
+            "status": "ACTIVE",
+            "includeSeoAndPcPublications": False,
+            "includeInternshipPublications": True,
+            "userGroup": {"groups": ["Control"], "type": "SPECIFIC"},
+            "or": [{"category": "tcareer_it", "tagSlugs": ["tcareer-it-experience-head"]}],
+        }
+    },
+    "pagination": {"job": {}, "back_office": {}, "it": {}},
+}
 
 # Сегмент раздела в URL карточки — карта фронта career.tbank.ru
 # (ow = {BACK_OFFICE:"back-office", IT:"it", SERVICE:"service"}).
@@ -102,10 +114,7 @@ def tbank_factory(settings: Settings, escalate: EscalateFn | None) -> SiteAdapte
     transport = HttpTransport(
         url=_ENDPOINT,
         method="POST",
-        json_body={
-            "source": _REQUEST_SOURCE,
-            "pagination": {"offset": 0, "limit": _PAGE_LIMIT},
-        },
+        json_body=_REQUEST_BODY,
         user_agent=settings.sites_user_agent,
         rate_limit_sec=settings.sites_rate_limit_sec,
         timeout_sec=settings.sites_timeout_sec,
