@@ -1,0 +1,110 @@
+{
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": 34863,
+        "name": "пекарь-тандырщик",
+        "direction_title": "Производство питания",
+        "direction_role_title": "Повар",
+        "experience_type_title": "От 1 года",
+        "city_title": "Московская область, дер. Коледино",
+        "employment_types": [
+          {
+            "id": 3,
+            "vacancy_id": 34863,
+            "title": "Офис",
+            "description": ""
+          }
+        ]
+      },
+      {
+        "id": 34565,
+        "name": "Буфетчик (Тахтамукай)",
+        "direction_title": "Производство питания",
+        "direction_role_title": "Повар",
+        "experience_type_title": "От 1 года",
+        "city_title": "Краснодар",
+        "employment_types": [
+          {
+            "id": 3,
+            "vacancy_id": 34565,
+            "title": "Офис",
+            "description": ""
+          }
+        ]
+      },
+      {
+        "id": 32719,
+        "name": "Бухгалтер (Реализация)",
+        "direction_title": "Бухгалтерия",
+        "direction_role_title": "Бухгалтер",
+        "experience_type_title": "От 3 лет",
+        "city_title": "Москва",
+        "employment_types": [
+          {
+            "id": 3,
+            "vacancy_id": 32719,
+            "title": "Офис",
+            "description": ""
+          }
+        ]
+      },
+      {
+        "id": 8016,
+        "name": "UX Researcher в Центр исследований RWB",
+        "direction_title": "UX",
+        "direction_role_title": "UX Исследователь",
+        "experience_type_title": "От 3 лет",
+        "city_title": "Москва",
+        "employment_types": [
+          {
+            "id": -1,
+            "vacancy_id": 8016,
+            "title": "не определен",
+            "description": "undefined"
+          },
+          {
+            "id": 1,
+            "vacancy_id": 8016,
+            "title": "Гибрид",
+            "description": ""
+          },
+          {
+            "id": 3,
+            "vacancy_id": 8016,
+            "title": "Офис",
+            "description": ""
+          }
+        ]
+      },
+      {
+        "id": 34430,
+        "name": "Аналитик-разработчик",
+        "direction_title": "Аналитика",
+        "direction_role_title": "Аналитик-разработчик",
+        "experience_type_title": "От 3 лет",
+        "city_title": "Москва",
+        "employment_types": [
+          {
+            "id": 1,
+            "vacancy_id": 34430,
+            "title": "Гибрид",
+            "description": ""
+          },
+          {
+            "id": 2,
+            "vacancy_id": 34430,
+            "title": "Удаленно",
+            "description": ""
+          }
+        ]
+      }
+    ],
+    "range": {
+      "count": 122,
+      "limit": 5,
+      "offset": 0
+    }
+  }
+}

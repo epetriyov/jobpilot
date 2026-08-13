@@ -36,8 +36,13 @@ def _base_env(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(name, raising=False)
 
 
-def test_known_sites_is_the_seven_portals() -> None:
-    assert frozenset({"yandex", "vk", "avito", "tbank", "ozon", "alfa", "sber"}) == KNOWN_SITES
+def test_known_sites_is_the_registered_portals() -> None:
+    # Волна A (yandex/vk/avito/tbank/sber) + справочные heavy/deferred (ozon/alfa)
+    # + волна B 2026-08-13 (navio/mts/rwb).
+    assert (
+        frozenset({"yandex", "vk", "avito", "tbank", "ozon", "alfa", "sber", "navio", "mts", "rwb"})
+        == KNOWN_SITES
+    )
 
 
 def test_sites_off_by_default(monkeypatch: pytest.MonkeyPatch) -> None:

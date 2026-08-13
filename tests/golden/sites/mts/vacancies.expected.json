@@ -1,0 +1,52 @@
+[
+  {
+    "external_id": "jq7u39drnw44gd5kw87brrtl",
+    "title": "Продавец (Розничная сеть МТС)",
+    "company": "mts",
+    "url": "https://job.mts.ru/jobs/103824171359808363",
+    "location": "Солнечногорск",
+    "salary_from": 80000,
+    "salary_to": 110000,
+    "salary_currency": "RUB"
+  },
+  {
+    "external_id": "be1kz29yyafvuez9gdo7vvi3",
+    "title": "Продавец (Розничная сеть МТС)",
+    "company": "mts",
+    "url": "https://job.mts.ru/jobs/58827640886322439",
+    "location": "Санкт-Петербург",
+    "salary_from": 80000,
+    "salary_to": 115000,
+    "salary_currency": "RUB"
+  },
+  {
+    "external_id": "qk0ozhxgglq5b29ogux826k7",
+    "title": "Старший инвестиционный консультант",
+    "company": "mts",
+    "url": "https://job.mts.ru/jobs/694486168510660673",
+    "location": "Москва",
+    "salary_from": null,
+    "salary_to": null,
+    "salary_currency": null
+  },
+  {
+    "external_id": "qadwd50qs5wr7r3brxmlt383",
+    "title": "Продавец (Розничная сеть МТС)",
+    "company": "mts",
+    "url": "https://job.mts.ru/jobs/48692144743931556",
+    "location": "Великий Новгород, Новгородская область",
+    "salary_from": 60000,
+    "salary_to": 75000,
+    "salary_currency": "RUB"
+  },
+  {
+    "external_id": "rdahsuqj939x4nzqu6nhs2o6",
+    "title": "Менеджер по развитию каналов привлечения (Телеком)",
+    "company": "mts",
+    "url": "https://job.mts.ru/jobs/694485593819709754",
+    "location": "Москва",
+    "salary_from": null,
+    "salary_to": null,
+    "salary_currency": null
+  }
+]

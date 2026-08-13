@@ -1,0 +1,340 @@
+{
+  "data": [
+    {
+      "id": "jq7u39drnw44gd5kw87brrtl",
+      "slug": "v-103824171359808363",
+      "title": "Продавец (Розничная сеть МТС)",
+      "displayTitle": "Продавец (Розничная сеть МТС)",
+      "summary": null,
+      "cities": [
+        {
+          "id": "fnuj5369btuaeepbqdwmya07",
+          "slug": "552799616106620-552799616106620",
+          "title": "Солнечногорск"
+        }
+      ],
+      "employer": {
+        "id": "u5ufaxrvlh10eef6jpr9muh4",
+        "slug": "v-60374746105118787",
+        "title": "АО РТК",
+        "logoUrl": null
+      },
+      "professionalRoles": [
+        {
+          "id": "xyezi273fbk3hbnwdehangle",
+          "slug": "v-60376857320620106",
+          "title": "Продажи и развитие"
+        },
+        {
+          "id": "v82k570cr8fjhwnssk3tu325",
+          "slug": "v-60378309803901007",
+          "title": "Салоны продаж"
+        }
+      ],
+      "experience": {
+        "id": "v217he2d0yyhyu2jd3vldr64",
+        "slug": "v-NOT",
+        "title": "Без опыта",
+        "code": "NOT"
+      },
+      "workFormats": [
+        {
+          "id": "wqr3qrdqiwqtzw3xysoxibfx",
+          "slug": "v-office",
+          "title": "В офисе",
+          "code": "office"
+        }
+      ],
+      "employmentForms": [
+        {
+          "id": "xyo8yvl3n56ku7zbovr07f4s",
+          "slug": "v-FLEXIBLE",
+          "title": "Гибкий график",
+          "code": "FLEXIBLE"
+        }
+      ],
+      "isRemote": false,
+      "isInternship": false,
+      "startLeto": false,
+      "isMass": true,
+      "isReferal": false,
+      "salary": {
+        "from": 80000,
+        "to": 110000,
+        "currency": "RUB",
+        "gross": true,
+        "period": "month"
+      },
+      "externalUrl": "https://job.mts.ru/jobs/103824171359808363",
+      "publishedAt": "2026-08-13T10:00:21.856Z",
+      "imageUrl": null,
+      "tags": []
+    },
+    {
+      "id": "be1kz29yyafvuez9gdo7vvi3",
+      "slug": "v-58827640886322439",
+      "title": "Продавец (Розничная сеть МТС)",
+      "displayTitle": "Продавец (Розничная сеть МТС)",
+      "summary": null,
+      "cities": [
+        {
+          "id": "pdphurfrmeppltxmkajxx974",
+          "slug": "552798328455279-552798328455279",
+          "title": "Санкт-Петербург"
+        }
+      ],
+      "employer": {
+        "id": "u5ufaxrvlh10eef6jpr9muh4",
+        "slug": "v-60374746105118787",
+        "title": "АО РТК",
+        "logoUrl": null
+      },
+      "professionalRoles": [
+        {
+          "id": "xyezi273fbk3hbnwdehangle",
+          "slug": "v-60376857320620106",
+          "title": "Продажи и развитие"
+        },
+        {
+          "id": "v82k570cr8fjhwnssk3tu325",
+          "slug": "v-60378309803901007",
+          "title": "Салоны продаж"
+        }
+      ],
+      "experience": {
+        "id": "v217he2d0yyhyu2jd3vldr64",
+        "slug": "v-NOT",
+        "title": "Без опыта",
+        "code": "NOT"
+      },
+      "workFormats": [
+        {
+          "id": "wqr3qrdqiwqtzw3xysoxibfx",
+          "slug": "v-office",
+          "title": "В офисе",
+          "code": "office"
+        }
+      ],
+      "employmentForms": [
+        {
+          "id": "xyo8yvl3n56ku7zbovr07f4s",
+          "slug": "v-FLEXIBLE",
+          "title": "Гибкий график",
+          "code": "FLEXIBLE"
+        }
+      ],
+      "isRemote": false,
+      "isInternship": false,
+      "startLeto": false,
+      "isMass": true,
+      "isReferal": false,
+      "salary": {
+        "from": 80000,
+        "to": 115000,
+        "currency": "RUB",
+        "gross": true,
+        "period": "month"
+      },
+      "externalUrl": "https://job.mts.ru/jobs/58827640886322439",
+      "publishedAt": "2026-08-13T10:00:19.315Z",
+      "imageUrl": null,
+      "tags": []
+    },
+    {
+      "id": "qk0ozhxgglq5b29ogux826k7",
+      "slug": "v-694486168510660673",
+      "title": "Старший инвестиционный консультант",
+      "displayTitle": "Старший инвестиционный консультант",
+      "summary": null,
+      "cities": [
+        {
+          "id": "h0scutr0ddllx6rcc8r7xv0q",
+          "slug": "552794318700651-552794318700651",
+          "title": "Москва"
+        }
+      ],
+      "employer": {
+        "id": "x6dmumxfiqy69fvmt73qosyl",
+        "slug": "v-60374775695933556",
+        "title": "ПАО МТС-Банк",
+        "logoUrl": null
+      },
+      "professionalRoles": [
+        {
+          "id": "xyezi273fbk3hbnwdehangle",
+          "slug": "v-60376857320620106",
+          "title": "Продажи и развитие"
+        }
+      ],
+      "experience": {
+        "id": "adjb80fghnrzhupkidfehuft",
+        "slug": "1-3-BETWEENONETREE",
+        "title": "1-3 года",
+        "code": "BETWEENONETREE"
+      },
+      "workFormats": [
+        {
+          "id": "wqr3qrdqiwqtzw3xysoxibfx",
+          "slug": "v-office",
+          "title": "В офисе",
+          "code": "office"
+        }
+      ],
+      "employmentForms": [
+        {
+          "id": "pj9v4kg6kbmey0fkwx79wf17",
+          "slug": "v-FULL",
+          "title": "Полный день",
+          "code": "FULL"
+        }
+      ],
+      "isRemote": false,
+      "isInternship": false,
+      "startLeto": false,
+      "isMass": false,
+      "isReferal": false,
+      "salary": null,
+      "externalUrl": "https://job.mts.ru/jobs/694486168510660673",
+      "publishedAt": "2026-08-13T10:00:27.534Z",
+      "imageUrl": null,
+      "tags": []
+    },
+    {
+      "id": "qadwd50qs5wr7r3brxmlt383",
+      "slug": "v-48692144743931556",
+      "title": "Продавец (Розничная сеть МТС)",
+      "displayTitle": "Продавец (Розничная сеть МТС)",
+      "summary": null,
+      "cities": [
+        {
+          "id": "cnhxsejh5ddq51n7tydiqu47",
+          "slug": "v-552790233448569",
+          "title": "Великий Новгород, Новгородская область"
+        }
+      ],
+      "employer": {
+        "id": "u5ufaxrvlh10eef6jpr9muh4",
+        "slug": "v-60374746105118787",
+        "title": "АО РТК",
+        "logoUrl": null
+      },
+      "professionalRoles": [
+        {
+          "id": "xyezi273fbk3hbnwdehangle",
+          "slug": "v-60376857320620106",
+          "title": "Продажи и развитие"
+        },
+        {
+          "id": "v82k570cr8fjhwnssk3tu325",
+          "slug": "v-60378309803901007",
+          "title": "Салоны продаж"
+        }
+      ],
+      "experience": {
+        "id": "v217he2d0yyhyu2jd3vldr64",
+        "slug": "v-NOT",
+        "title": "Без опыта",
+        "code": "NOT"
+      },
+      "workFormats": [
+        {
+          "id": "wqr3qrdqiwqtzw3xysoxibfx",
+          "slug": "v-office",
+          "title": "В офисе",
+          "code": "office"
+        }
+      ],
+      "employmentForms": [
+        {
+          "id": "xyo8yvl3n56ku7zbovr07f4s",
+          "slug": "v-FLEXIBLE",
+          "title": "Гибкий график",
+          "code": "FLEXIBLE"
+        }
+      ],
+      "isRemote": false,
+      "isInternship": false,
+      "startLeto": false,
+      "isMass": true,
+      "isReferal": false,
+      "salary": {
+        "from": 60000,
+        "to": 75000,
+        "currency": "RUB",
+        "gross": true,
+        "period": "month"
+      },
+      "externalUrl": "https://job.mts.ru/jobs/48692144743931556",
+      "publishedAt": "2026-08-13T10:00:19.219Z",
+      "imageUrl": null,
+      "tags": []
+    },
+    {
+      "id": "rdahsuqj939x4nzqu6nhs2o6",
+      "slug": "v-694485593819709754",
+      "title": "Менеджер по развитию каналов привлечения (Телеком)",
+      "displayTitle": "Менеджер по развитию каналов привлечения (Телеком)",
+      "summary": null,
+      "cities": [
+        {
+          "id": "h0scutr0ddllx6rcc8r7xv0q",
+          "slug": "552794318700651-552794318700651",
+          "title": "Москва"
+        }
+      ],
+      "employer": {
+        "id": "v3z1n3ovh1zopqy4vaf9zi58",
+        "slug": "v-22239684461592654",
+        "title": "ПАО МТС",
+        "logoUrl": null
+      },
+      "professionalRoles": [
+        {
+          "id": "f2zag2bzmc97j9ptgro865h9",
+          "slug": "pr-60376789452587135",
+          "title": "Маркетинг и PR"
+        }
+      ],
+      "experience": {
+        "id": "adjb80fghnrzhupkidfehuft",
+        "slug": "1-3-BETWEENONETREE",
+        "title": "1-3 года",
+        "code": "BETWEENONETREE"
+      },
+      "workFormats": [
+        {
+          "id": "ehylbxl5f3s9phvtopwbzabb",
+          "slug": "v-hybrid",
+          "title": "Гибридный",
+          "code": "hybrid"
+        }
+      ],
+      "employmentForms": [
+        {
+          "id": "pj9v4kg6kbmey0fkwx79wf17",
+          "slug": "v-FULL",
+          "title": "Полный день",
+          "code": "FULL"
+        }
+      ],
+      "isRemote": false,
+      "isInternship": false,
+      "startLeto": false,
+      "isMass": false,
+      "isReferal": false,
+      "salary": null,
+      "externalUrl": "https://job.mts.ru/jobs/694485593819709754",
+      "publishedAt": "2026-08-13T10:00:27.406Z",
+      "imageUrl": null,
+      "tags": []
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "pageSize": 5,
+      "pageCount": 875,
+      "total": 2624
+    }
+  }
+}

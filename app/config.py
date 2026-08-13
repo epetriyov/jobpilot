@@ -13,7 +13,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Фиксированное множество карьерных порталов этапа 5 (contracts/env.md).
 # Любое имя в SITES_* вне этого множества — ошибка конфига ([F-U1]).
-KNOWN_SITES: frozenset[str] = frozenset({"yandex", "vk", "avito", "tbank", "ozon", "alfa", "sber"})
+KNOWN_SITES: frozenset[str] = frozenset(
+    {"yandex", "vk", "avito", "tbank", "ozon", "alfa", "sber", "navio", "mts", "rwb"}
+)
 # Минимальная пауза между запросами к одному порталу — вежливость ≥1 rps
 # (scraping-risks.md guardrail; жёсткий нижний предел, не настраивается вниз).
 SITES_MIN_RATE_LIMIT_SEC = 1.0

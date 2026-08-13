@@ -12,6 +12,9 @@ from collections.abc import Callable
 
 from app.adapters.sites.avito import avito_factory
 from app.adapters.sites.base import EscalateFn, SiteAdapter
+from app.adapters.sites.mts import mts_factory
+from app.adapters.sites.navio import navio_factory
+from app.adapters.sites.rwb import rwb_factory
 from app.adapters.sites.sber import sber_factory
 from app.adapters.sites.tbank import tbank_factory
 from app.adapters.sites.vk import vk_factory
@@ -32,4 +35,8 @@ SITE_ADAPTERS: dict[str, SiteFactory] = {
     "avito": avito_factory,
     "sber": sber_factory,
     "tbank": tbank_factory,
+    # Волна B (2026-08-13): публичные JSON/встроенные фиды карьерных порталов.
+    "navio": navio_factory,  # Gatsby window.pageData (встроенный JSON)
+    "mts": mts_factory,  # публичный каталог /api/v2/catalog/v1/vacancies
+    "rwb": rwb_factory,  # публичный /crm-api/api/v1/pub/vacancies (RWB/WB)
 }
