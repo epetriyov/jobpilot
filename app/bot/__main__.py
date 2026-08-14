@@ -7,6 +7,7 @@ import asyncio
 import structlog
 from aiogram import Bot, Dispatcher
 
+from app.bot.commands import build_bot_commands
 from app.bot.handlers import router
 from app.bot.middleware import OwnerOnlyMiddleware
 from app.config import Settings
@@ -32,6 +33,8 @@ async def main() -> None:
     dp.message.middleware(owner_only)
     dp.callback_query.middleware(owner_only)  # кнопки 👍/👎 — тоже только владелец
     dp.include_router(router)
+
+    await bot.set_my_commands(build_bot_commands())  # синее меню по кнопке «/»
 
     log.info("bot_starting", dry_run=settings.dry_run)
     await dp.start_polling(bot)
