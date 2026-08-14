@@ -27,15 +27,15 @@
 
 > Зависимости: 6A. Миграция `0008_stage6b_application` (down_revision `0007`).
 
-- [ ] **T6B-1** [C-U1] Property-тест (`hypothesis`) статусной машины §3.3: перебор всех пар `(from,to)` — допустимы только переходы §3.3, остальные → `IllegalTransition`, состояние неизменно (C2). → tests/unit/domain/test_crm.py
-- [ ] **T6B-2** [C-U2] Property-тест раундов: добавление только в `interview`, строго по возрастанию; повтор `hr`/`tech-1` → ошибка порядка; `tech-2` → ок.
-- [ ] **T6B-3** [C-U3] Тест отказа: из `new`/`applied` → `stage ∈ {pre_hr,hr}`; из `interview` → `{hr,tech,final}`; `reject` без stage → ошибка.
-- [ ] **T6B-4** Домен `app/domain/crm/` (зелёный по T6B-1..3): `ApplicationStatus`, `RejectStage`, `InterviewRoundKind`, `InterviewRound`, агрегат `Application` (методы `apply/to_interview/add_round/to_offer/reject/add_interview_details`), `IllegalTransition`, события `VacancySaved`/`StatusChanged`/`InterviewScheduled` (§3.3).
-- [ ] **T6B-5** Миграция `0008_stage6b_application`: `application` (uq `vacancy_id` — C1; CHECK статусов/reject_stage) + `interview_round` (FK CASCADE, uq(app,ordinal), uq(app,kind)); ORM + `ApplicationRepository` (data-model §2). Integration-тест схемы.
-- [ ] **T6B-6** [C-U4] Contract-тест → `application/save_vacancy.py`: 💾 создаёт `Application(new)` + `VacancySaved`; повтор 💾 → тот же Application (C1), дубль не создан.
-- [ ] **T6B-7** Contract-тесты → `application/change_status.py`: переходы/раунды/отказ/удаление через доменные методы; недопустимый → `IllegalTransition` (без изменения состояния).
-- [ ] **T6B-8** [C-U5] Contract-тест → `application/add_interview_details.py` (ручной путь): «➕ собес» дополняет `interview_url`/`notes`, статус НЕ меняет (C3). LLM-путь — 6G.
-- [ ] **T6B-9** [C-I1] Integration: бот-хендлеры (aiogram harness) — карточка → 💾 → applied → interview(hr) → interview(tech-1) → offer; кнопки/колбэки `crm:*`, `/saved`, «🗑», «➕ собес»; DRY_RUN-нейтрально (CRM — локальные записи). Композиция use cases в `composition.py`.
+- [x] **T6B-1** [C-U1] Property-тест (`hypothesis`) статусной машины §3.3: перебор всех пар `(from,to)` — допустимы только переходы §3.3, остальные → `IllegalTransition`, состояние неизменно (C2). → tests/unit/domain/test_crm.py
+- [x] **T6B-2** [C-U2] Property-тест раундов: добавление только в `interview`, строго по возрастанию; повтор `hr`/`tech-1` → ошибка порядка; `tech-2` → ок.
+- [x] **T6B-3** [C-U3] Тест отказа: из `new`/`applied` → `stage ∈ {pre_hr,hr}`; из `interview` → `{hr,tech,final}`; `reject` без stage → ошибка.
+- [x] **T6B-4** Домен `app/domain/crm/` (зелёный по T6B-1..3): `ApplicationStatus`, `RejectStage`, `InterviewRoundKind`, `InterviewRound`, агрегат `Application` (методы `apply/to_interview/add_round/to_offer/reject/add_interview_details`), `IllegalTransition`, события `VacancySaved`/`StatusChanged`/`InterviewScheduled` (§3.3).
+- [x] **T6B-5** Миграция `0008_stage6b_application`: `application` (uq `vacancy_id` — C1; CHECK статусов/reject_stage) + `interview_round` (FK CASCADE, uq(app,ordinal), uq(app,kind)); ORM + `ApplicationRepository` (data-model §2). Integration-тест схемы.
+- [x] **T6B-6** [C-U4] Contract-тест → `application/save_vacancy.py`: 💾 создаёт `Application(new)` + `VacancySaved`; повтор 💾 → тот же Application (C1), дубль не создан.
+- [x] **T6B-7** Contract-тесты → `application/change_status.py`: переходы/раунды/отказ/удаление через доменные методы; недопустимый → `IllegalTransition` (без изменения состояния).
+- [x] **T6B-8** [C-U5] Contract-тест → `application/add_interview_details.py` (ручной путь): «➕ собес» дополняет `interview_url`/`notes`, статус НЕ меняет (C3). LLM-путь — 6G.
+- [x] **T6B-9** [C-I1] Integration: бот-хендлеры (aiogram harness) — карточка → 💾 → applied → interview(hr) → interview(tech-1) → offer; кнопки/колбэки `crm:*`, `/saved`, «🗑», «➕ собес»; DRY_RUN-нейтрально (CRM — локальные записи). Композиция use cases в `composition.py`.
 
 **Выход 6B**: полный цикл заявки через бот. **Приёмка**: SC-002.
 
@@ -57,11 +57,11 @@
 
 > Зависимости: 6A. Параллельно 6B/6E. Миграция `0009_stage6d_pgvector`.
 
-- [ ] **T6D-1** `EmbeddingPort.embed(text)->list[float]` (768) + fake (детерминированный) + `embeddings_openrouter` (модель `LLM_MODEL_EMBEDDING`, `llm_call` purpose=`embedding`, O1); contract-тест.
-- [ ] **T6D-2** Миграция `0009_stage6d_pgvector`: HNSW-индекс `hnsw (embedding vector_cosine_ops)` на `labeled_vacancy` (data-model §3). Integration-тест наличия индекса.
-- [ ] **T6D-3** `LabelRepository.nearest(embedding, k)` (`<=>` cosine) + запись embedding при разметке; идемпотентный backfill-джоб эмбеддингов историков (не миграция). Contract/integration-тест.
-- [ ] **T6D-4** Селектор few-shot как стратегия: `SemanticSelector` ∥ `RecentSelector`; инъекция в `score_vacancy.py`; фолбэк на recent при `< FEWSHOT_MIN_EMBEDDED` ([R-U2]-совместимо). Unit/contract-тест выбора и фолбэка.
-- [ ] **T6D-5** [R-E2] **Eval-задача**: расширить `eval/runners/relevance.py` — сравнение семантического селектора vs «последние N» на датасете `relevance`; метрика agreement rate/F1; **порог: семантический ≥ базового**; отчёт с двумя строками в `eval/reports/`. `make eval CONTEXT=relevance` (переключатель селектора).
+- [x] **T6D-1** `EmbeddingPort.embed(text)->list[float]` (768) + fake (детерминированный) + `embeddings_openrouter` (модель `LLM_MODEL_EMBEDDING`, `llm_call` purpose=`embedding`, O1); contract-тест.
+- [x] **T6D-2** Миграция `0009_stage6d_pgvector`: HNSW-индекс `hnsw (embedding vector_cosine_ops)` на `labeled_vacancy` (data-model §3). Integration-тест наличия индекса.
+- [x] **T6D-3** `LabelRepository.nearest(embedding, k)` (`<=>` cosine) + запись embedding при разметке; идемпотентный backfill-джоб эмбеддингов историков (не миграция). Contract/integration-тест.
+- [x] **T6D-4** Селектор few-shot как стратегия: `SemanticSelector` ∥ `RecentSelector`; инъекция в `score_vacancy.py`; фолбэк на recent при `< FEWSHOT_MIN_EMBEDDED` ([R-U2]-совместимо). Unit/contract-тест выбора и фолбэка.
+- [x] **T6D-5** [R-E2] **Eval-задача**: расширить `eval/runners/relevance.py` — сравнение семантического селектора vs «последние N» на датасете `relevance`; метрика agreement rate/F1; **порог: семантический ≥ базового**; отчёт с двумя строками в `eval/reports/`. `make eval CONTEXT=relevance` (переключатель селектора). *(shipped: раннер+датасет+отчёт `eval/reports/relevance_selectors_2026-08-12.md`, CI-eval fake=PASS; pending: содержательное real-сравнение селекторов на OpenRouter)*
 
 **Выход 6D**: семантический few-shot + доказательство неухудшения. **Приёмка**: SC-004.
 
@@ -71,11 +71,11 @@
 
 > Зависимости: 6A. Параллельно 6B/6D. Миграция `0010_stage6e_cover_letter`.
 
-- [ ] **T6E-1** Домен `correspondence` +`CoverLetter(vacancy_id, text ≤2000, prompt_version)`; схема LLM `CoverLetterOut(text: str<=2000)`; unit-тест лимита/схемы.
-- [ ] **T6E-2** Миграция `0010_stage6e_cover_letter`: `cover_letter` (FK vacancy, CHECK ≤2000) + `CoverLetterRepository` (data-model §4). Integration-тест схемы.
-- [ ] **T6E-3** Промпт `letter_v1.md` (русский, «только факты из резюме», ≤2000, текст вакансии — недоверенные данные, R5) + `stub_letter_response` в `adapters/llm/fake.py`.
-- [ ] **T6E-4** [M-C3] Contract-тест → `application/generate_cover_letter.py`: «✉️» — промпт содержит резюме EM и рекомендации из `resumes/`, русский; модель `LLM_MODEL_LETTERS` (Pro); невалидно → 1 retry → graceful; `llm_call` (O1); persist в `cover_letter`. Бот: «✉️» на карточке, «🔁» (новая версия), «✏️» (ручная правка); отправка только вручную (M3, VI). Тела писем не логируются (M4).
-- [ ] **T6E-5** [M-E2] **Eval-задача** `cover_letter`: датасет `eval/datasets/cover_letter/v1.jsonl` (≥10 вакансий) + раннер `eval/runners/cover_letter.py` + диспетчер в `run.py` (+THRESHOLDS): LLM-судья fact-check каждого факта против резюме → **hallucinations=0 (блокер)** + рубрика (обращение к вакансии, 1–2 метрики, ≤2000, без канцелярита); судья `LLM_MODEL_JUDGE`, инфра-сбои судьи вне знаменателя. CI-eval в fake-режиме; real — после OpenRouter.
+- [x] **T6E-1** Домен `correspondence` +`CoverLetter(vacancy_id, text ≤2000, prompt_version)`; схема LLM `CoverLetterOut(text: str<=2000)`; unit-тест лимита/схемы.
+- [x] **T6E-2** Миграция `0010_stage6e_cover_letter`: `cover_letter` (FK vacancy, CHECK ≤2000) + `CoverLetterRepository` (data-model §4). Integration-тест схемы.
+- [x] **T6E-3** Промпт `letter_v1.md` (русский, «только факты из резюме», ≤2000, текст вакансии — недоверенные данные, R5) + `stub_letter_response` в `adapters/llm/fake.py`.
+- [x] **T6E-4** [M-C3] Contract-тест → `application/generate_cover_letter.py`: «✉️» — промпт содержит резюме EM и рекомендации из `resumes/`, русский; модель `LLM_MODEL_LETTERS` (Pro); невалидно → 1 retry → graceful; `llm_call` (O1); persist в `cover_letter`. Бот: «✉️» на карточке, «🔁» (новая версия), «✏️» (ручная правка); отправка только вручную (M3, VI). Тела писем не логируются (M4).
+- [x] **T6E-5** [M-E2] **Eval-задача** `cover_letter`: датасет `eval/datasets/cover_letter/v1.jsonl` (≥10 вакансий) + раннер `eval/runners/cover_letter.py` + диспетчер в `run.py` (+THRESHOLDS): LLM-судья fact-check каждого факта против резюме → **hallucinations=0 (блокер)** + рубрика (обращение к вакансии, 1–2 метрики, ≤2000, без канцелярита); судья `LLM_MODEL_JUDGE`, инфра-сбои судьи вне знаменателя. CI-eval в fake-режиме; real — после OpenRouter. *(shipped: раннер+датасет+отчёт `eval/reports/cover_letter_2026-08-12.md`, CI-eval fake=PASS; pending: real fact-check прогон на OpenRouter)*
 
 **Выход 6E**: письма Pro без галлюцинаций, отправка вручную. **Приёмка**: SC-005.
 
@@ -109,8 +109,8 @@
 
 ## Финал этапа
 
-- [ ] **T6-DoD** Гейты зелёные (ruff/mypy/import-linter/pytest; CI-eval fake=PASS); отчёт по DoD PLAN.md §6.
-- [ ] **T6-Manual** 🖐 Владелец: первый `/review` (базовый agreement rate), 5 писем на проверку фактов, диалоговый запрос через MCP (SC-008).
+- [x] **T6-DoD** Гейты зелёные (ruff/mypy/import-linter/pytest; CI-eval fake=PASS); отчёт по DoD PLAN.md §6.
+- [ ] **T6-Manual** 🖐 Владелец: первый `/review` (базовый agreement rate), 5 писем на проверку фактов, диалоговый запрос через MCP (SC-008). *(pending: owner-side ручная проверка — артефакта прогона нет)*
 
 ## Dependencies
 

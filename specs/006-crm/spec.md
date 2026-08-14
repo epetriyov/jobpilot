@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-12
 
-**Status**: Draft
+**Status**: Shipped to prod (v0.3.0+, миграции 0007–0010); гейты зелёные (ruff/mypy/import-linter 4/4, pytest); CI-eval в fake-режиме PASS. Pending (owner-side): real-eval `cover_letter`/`relevance_selectors` на OpenRouter, ручная приёмка T6-Manual (первый `/review`, 5 писем, MCP-диалог из Claude Desktop).
 
 **Input**: PLAN.md §6 «Этап 6»: полное хранилище `vacancy` (миграция: seen/labeled поверх него); агрегат Application (💾 Сохранить, `/saved`, статусы+раунды+этапы отказа, 🗑, «➕ собес» — извлечение даты/ссылки из пересланного HR-сообщения, статус не меняет); `/stats`, `/costs`, `/review` (agreement rate); семантический few-shot selector (pgvector) + сравнительный eval против «последних N»; сопроводительные письма (Pro, русский, только факты из резюме, 🔁/✏️, отправка вручную); MCP-сервер по §4. Eval: property-тесты статусной машины; `hr_extract` ≥0.9; `cover_letter` — hallucinations=0 (блокер) + рубрика; сравнение селекторов.
 
