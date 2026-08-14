@@ -2,6 +2,8 @@
 повторное нажатие обновляет вердикт без дубликата, строка уходит в eval-датасет.
 """
 
+import structlog
+
 from app.application.label_vacancy import LabelVacancy
 from app.domain.relevance import LabeledVacancy, VacancySnapshot
 from app.domain.shared import Source, SourceRef
@@ -84,6 +86,37 @@ async def test_unknown_ref_returns_none_and_writes_nothing() -> None:
 
     assert labeled is None
     assert labels.by_ref == {} and dataset.lines == []
+
+
+class ExplodingEmbedder:
+    """Эмбеддер, воспроизводящий прод-краш (модель не существует → 400)."""
+
+    async def embed(self, text: str) -> list[float]:
+        raise RuntimeError("Model foo/bar does not exist")
+
+
+async def test_embedder_failure_does_not_break_label() -> None:
+    """[C-E3] Сбой embed() в разметке = graceful skip: лейбл сохранён,
+    исключение НЕ всплывает в хендлер (иначе падает бот и виснет long-polling).
+    """
+    labels, dataset = LabelsFake(), DatasetFake()
+    use_case = LabelVacancy(
+        seen_repo=SeenFake({REF.as_key(): SNAPSHOT}),
+        label_repo=labels,
+        dataset=dataset,
+        embedder=ExplodingEmbedder(),
+    )
+
+    with structlog.testing.capture_logs() as logs:
+        labeled = await use_case.label("hh:42", "relevant")
+
+    # лейбл сохранён несмотря на сбой эмбеддера
+    assert labeled is not None and labeled.verdict == "relevant"
+    assert labels.by_ref["hh:42"].verdict == "relevant"
+    assert labels.last_embedding is None  # без вектора, backfill добьёт позже
+    assert dataset.lines[0]["id"] == "hh:42"
+    # предупреждение зафиксировано (наблюдаемость)
+    assert any(e.get("event") == "label_embed_skipped" for e in logs)
 
 
 async def test_progress_counts() -> None:

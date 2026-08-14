@@ -131,3 +131,23 @@ async def test_openrouter_model_from_config() -> None:
     sent = json.loads(route.calls[0].request.content)
     assert sent["model"] == "vendor/custom-embed"
     assert recorder.records[0].model == "vendor/custom-embed"
+
+
+async def test_openrouter_requests_schema_dimension() -> None:
+    """Провайдерные модели (openai/text-embedding-3-*) по умолчанию отдают 1536;
+    схема БД — vector(768). Адаптер обязан запросить dimensions=EMBEDDING_DIM,
+    иначе вектор не влезает в колонку.
+    """
+    settings = make_settings()
+    recorder = RecorderSpy()
+    with respx.mock(base_url="https://openrouter.ai") as router:
+        route = router.post("/api/v1/embeddings").mock(
+            side_effect=[_embedding_response(EMBEDDING_DIM)]
+        )
+        embedder = OpenRouterEmbedder(settings=settings, recorder=recorder)
+        await embedder.embed("текст")
+
+    import json
+
+    sent = json.loads(route.calls[0].request.content)
+    assert sent["dimensions"] == EMBEDDING_DIM

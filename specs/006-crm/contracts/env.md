@@ -6,7 +6,7 @@
 
 | Переменная | Дефолт | Назначение |
 |---|---|---|
-| `LLM_MODEL_EMBEDDING` | `google/text-embedding-004` | модель эмбеддингов (768-мерный вектор; смена размерности → ADR + миграция типа колонки) |
+| `LLM_MODEL_EMBEDDING` | `openai/text-embedding-3-small` | модель эмбеддингов (OpenRouter /embeddings поддерживает только `openai/text-embedding-*`; адаптер шлёт `dimensions=768` → 768-мерный вектор под колонку; смена размерности → ADR + миграция типа колонки) |
 | `FEWSHOT_MIN_EMBEDDED` | `10` | минимум размеченных с эмбеддингами для семантического селектора; ниже — фолбэк «последние N» ([R-U2]) |
 | `FEWSHOT_SELECTOR` | `semantic` | `semantic` \| `recent` — стратегия few-shot (для сравнительного eval [R-E2] и аварийного отката) |
 

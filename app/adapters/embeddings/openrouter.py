@@ -16,7 +16,7 @@ from openai import AsyncOpenAI
 from app.config import Settings
 from app.obs.metrics import record_llm_metrics
 from app.obs.tracing import current_trace_id
-from app.ports.embeddings import EMBEDDING_PROMPT_VERSION
+from app.ports.embeddings import EMBEDDING_DIM, EMBEDDING_PROMPT_VERSION
 from app.ports.llm import LlmCallRecord, LlmCallRecorderPort
 
 log = structlog.get_logger("adapters.embeddings.openrouter")
@@ -40,7 +40,12 @@ class OpenRouterEmbedder:
 
     async def embed(self, text: str) -> list[float]:
         started = time.perf_counter()
-        response = await self._client.embeddings.create(model=self.model, input=text)
+        # dimensions привязан к контракту схемы (labeled_vacancy.embedding vector(768)):
+        # provider-модели text-embedding-3-* отдают 1536 по умолчанию и не влезли бы в
+        # колонку — усечение matryoshka до EMBEDDING_DIM держит вектор совместимым.
+        response = await self._client.embeddings.create(
+            model=self.model, input=text, dimensions=EMBEDDING_DIM
+        )
         vector = [float(x) for x in response.data[0].embedding]
 
         usage = getattr(response, "usage", None)

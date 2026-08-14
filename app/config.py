@@ -153,8 +153,10 @@ class Settings(BaseSettings):
     # инвайты (этап 3): flash-lite не тянет анти-штамп/роль-тон (eval invite_rubric) → flash
     llm_model_invite: str = Field("google/gemini-2.5-flash", alias="LLM_MODEL_INVITE")
     llm_model_judge: str = Field("google/gemini-2.5-flash", alias="LLM_MODEL_JUDGE")
-    # эмбеддинги (этап 6D): семантический few-shot; 768-мерная модель (data-model §3)
-    llm_model_embedding: str = Field("google/text-embedding-004", alias="LLM_MODEL_EMBEDDING")
+    # эмбеддинги (этап 6D): семантический few-shot. OpenRouter /embeddings отдаёт только
+    # openai/text-embedding-* (google/text-embedding-004 → 400 does not exist, ронял бота);
+    # 3-small усекается до 768 (EMBEDDING_DIM, matryoshka) через dimensions в адаптере.
+    llm_model_embedding: str = Field("openai/text-embedding-3-small", alias="LLM_MODEL_EMBEDDING")
     price_per_mtok_in: float = Field(0.10, alias="PRICE_PER_MTOK_IN")
     price_per_mtok_out: float = Field(0.40, alias="PRICE_PER_MTOK_OUT")
 

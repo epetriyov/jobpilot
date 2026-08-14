@@ -48,7 +48,14 @@ class LabelVacancy:
         if self._embedder is not None:
             from app.application.fewshot import vacancy_text
 
-            embedding = await self._embedder.embed(vacancy_text(labeled))
+            # Эмбеддинг — best-effort «на будущее» для semantic-fewshot, а не
+            # критичный путь разметки. Сбой провайдера (напр. невалидная модель →
+            # 400) НЕ должен ронять хендлер и вешать long-polling: graceful skip,
+            # лейбл всё равно персистится, backfill-джоб добьёт вектор позже.
+            try:
+                embedding = await self._embedder.embed(vacancy_text(labeled))
+            except Exception as exc:
+                log.warning("label_embed_skipped", source_ref=ref_key, error=str(exc))
         await self._labels.upsert(labeled, embedding)
         self._dataset.append(
             {

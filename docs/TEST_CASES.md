@@ -104,6 +104,7 @@ Eval (E):
 Eval (E):
 - [C-E1] Датасет `hr_extract` (≥15 реальных обезличенных сообщений HR → эталон {date, url, gist}): accuracy ≥0.9 по дате и ссылке.
 - [C-E2] `/review`-механика: 10 случайных скоренных вакансий → вердикты пользователя → agreement rate сохранён в отчёт; тест — что расхождения записались в `label`.
+- [C-E3] Резильенс разметки (этап 6D): сбой `embedder.embed()` в use case `LabelVacancy` (напр. невалидная модель → 400) = graceful skip — лейбл персистится, предупреждение `label_embed_skipped` залогировано, исключение НЕ всплывает в bot-хендлер (иначе падает поллер). Тест — `tests/unit/test_label_vacancy.py::test_embedder_failure_does_not_break_label`.
 
 ## 6. MCP-сервер (этап 6)
 
