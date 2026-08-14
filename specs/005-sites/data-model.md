@@ -8,7 +8,7 @@
 | Домен (существует) | Источник — поле карточки портала | Правило |
 |---|---|---|
 | `Source` | — | всегда `Source.SITE` |
-| `SourceRef.site_name` | — | имя адаптера ∈ {yandex, vk, avito, tbank, ozon, alfa, sber} |
+| `SourceRef.site_name` | — | имя адаптера ∈ {yandex, vk, avito, tbank, ozon, alfa, sber, navio, mts, rwb} |
 | `SourceRef.external_id` | id/slug вакансии на портале | стабильный ключ карточки; при отсутствии — хеш(url) |
 | `Vacancy.title` | заголовок вакансии | обязательно (completeness 100%, [S-C7]) |
 | `Vacancy.company` | — | = имя компании адаптера (портал = один работодатель); 100% |
@@ -37,7 +37,7 @@
 
 | Колонка | Тип | Ограничения |
 |---|---|---|
-| site_name | text | PK, ∈ {yandex, vk, avito, tbank, ozon, alfa, sber} |
+| site_name | text | PK, ∈ {yandex, vk, avito, tbank, ozon, alfa, sber, navio, mts, rwb} (CHECK `ck_scraper_approval_site`; расширен с 7 до 10 миграцией 0011_wave_b_sites) |
 | approved_at | timestamptz | NOT NULL default now() — момент одобрения владельцем |
 | approved_by_chat_id | bigint | NOT NULL — OWNER_CHAT_ID (аудит) |
 

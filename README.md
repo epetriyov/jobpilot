@@ -6,8 +6,9 @@ Telegram-агент поиска работы. Методология: Spec-Driv
 [.specify/memory/constitution.md](.specify/memory/constitution.md) (высший приоритет).
 
 Текущий статус: **этапы 0–6 в проде** (HH, письма, LinkedIn, GetMatch, скрейперы, CRM+MCP);
-идёт **этап 7 — прод-закалка** (см. [specs/007-prod-hardening/](specs/007-prod-hardening/)).
-Прод развёрнут на VPS VDSina, деплой по git-тегу (текущий — `v0.3.0`).
+**этап 7 — прод-закалка**: репо-часть (systemd-юнит, healthcheck, runbook) завершена,
+owner-side приёмка на VPS pending (см. [specs/007-prod-hardening/](specs/007-prod-hardening/)).
+Прод развёрнут на VPS VDSina, деплой по git-тегу (текущий — `v0.8.2`).
 
 ## Быстрый старт (локально)
 

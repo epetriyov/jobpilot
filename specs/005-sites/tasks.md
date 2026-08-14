@@ -1,4 +1,4 @@
-# Tasks: Скрейперы карьерных порталов (7 сайтов) — Этап 5
+# Tasks: Скрейперы карьерных порталов (10 сайтов) — Этап 5
 
 **Input**: Design documents from `/specs/005-sites/`
 
@@ -78,6 +78,31 @@
   SPA-only) на `BrowserTransport` — те же `parse_<site>`/golden, смена транспорта (плюс к
   разделению транспорт↔парсер, plan.md).
 
+## Phase 4b: Волна D — публичные JSON-фиды карьерных порталов — текущее железо
+
+> **Терминология волн (во избежание коллизии имён):** B = Сбер/Т-Банк/Альфа (JSON после спайка,
+> T520–T522); C = Ozon/`browser_transport` (гейт железа, T530–T532); **D = Navio/МТС/RWB**
+> (публичные JSON-фиды single-employer карьерных порталов, текущее железо). ⚠️ В комментариях кода
+> (`registry.py`) эти три сайта ошибочно подписаны «Волна B» — правка комментариев вне scope
+> ретро-синхронизации спеки (отдельная задача). Построена вперёд спеки, синхронизирована
+> ретроспективно — см. docs/decisions/ADR-001.
+
+- [x] T550 [US1] [S-C7] **Navio** (navio.auto/vacancies): встроенный JSON-фид Gatsby
+  `window.pageData` → `parse_navio` (golden `tests/golden/sites/navio/`, unit
+  `tests/unit/test_parse_navio.py`) → `navio_factory`/`NavioAdapter` (httpx) → регистрация в
+  `SITE_ADAPTERS` (registry.py) + `KNOWN_SITES` (config.py) → canary. Статус: публичный (🟢*).
+- [x] T551 [P] [US1] [S-C7] **МТС** (job.mts.ru): публичный каталог
+  `GET /api/v2/catalog/v1/vacancies` → `parse_mts` (golden `tests/golden/sites/mts/`, unit
+  `tests/unit/test_parse_mts.py`) → `mts_factory`/`MtsAdapter` (httpx) → canary. Статус: 🟡 (домен
+  за ddos-guard; челлендж/блок → `SourceFetchFailed(anti_bot)` + эскалация, S5, не обходим).
+- [x] T552 [P] [US1] [S-C7] **RWB/Wildberries** (career.rwb.ru): публичный cookieless
+  `GET /crm-api/api/v1/pub/vacancies` → `parse_rwb` (golden `tests/golden/sites/rwb/`, unit
+  `tests/unit/test_parse_rwb.py`) → `rwb_factory`/`RwbAdapter` (httpx) → canary. Статус: 🟢*
+  (явный `pub`-эндпоинт для кандидатов, без логина/анти-бота).
+- [x] T553 [F-I1] Миграция `0011_wave_b_sites`: расширить CHECK `ck_scraper_approval_site` с 7 до
+  10 сайтов (`_SITES_V2` = KNOWN_SITES), иначе `/approve_scraper navio|mts|rwb` падал на
+  constraint. `downgrade` удаляет строки navio/mts/rwb перед сужением до `_SITES_V1`.
+
 ## Phase 5: Eval и Polish
 
 - [x] T540 [S-E2] Раннер `eval/runners/sites_parse.py` (+ диспетчер в `run.py`): per-site
@@ -96,18 +121,20 @@
 T501 → T502–T505 (каркас) → T506–T507 (persist + canary) → Волна A (T510–T512) → Волна B
 (T520–T522, каждая после своего спайка) → Волна C (T530–T532, после апгрейда железа) →
 T540 (после ≥1 сайта) → T541 → T542. T510–T512 параллельны между собой; T520–T522 параллельны
-после спайков.
+после спайков. Волна D (T550–T552, публичные JSON-фиды) параллельна и не зависит от B/C — едет на
+текущем железе после каркаса (T501–T507); T553 (миграция 0011) — после T550–T552 (расширяет CHECK
+под их site_name).
 
 ## Соответствие кейсам TEST_CASES.md (раздел «Сайты (C)» + Eval)
 
 | Кейс | Задача |
 |---|---|
-| [S-C7] маппинг/completeness | T505, T510–T512, T520–T522, T531 |
-| [S-C8] golden-diff | T505, T510–T512, T520–T522, T531 |
+| [S-C7] маппинг/completeness | T505, T510–T512, T520–T522, T531, T550–T552 |
+| [S-C8] golden-diff | T505, T510–T512, T520–T522, T531, T550–T552 |
 | [S-C9] изоляция + `scraper_failures` | T503, T507 |
 | [S-C10] rate-limit + UA + robots | T502 |
 | [S-E2] `sites_parse` completeness | T540 |
-| [F-I1] миграция | T506 |
+| [F-I1] миграция | T506, T553 |
 | [F-I2] DRY_RUN | T507 |
 | S5 анти-бот (не обходим) | T503, T531 |
 
@@ -118,4 +145,5 @@ T540 (после ≥1 сайта) → T541 → T542. T510–T512 паралле�
 | A лёгкая | T510–T512 | текущее (1 vCPU/1 GB) | сразу |
 | B лёгкая-если-JSON | T520–T522 | текущее (если JSON) | после спайка [OQ-1] |
 | C тяжёлая | T530–T532 | 4 vCPU/8 GB (INFRA.md §4.2) | после апгрейда; капча → не активируем (S5) |
+| D публичные JSON-фиды | T550–T552 | текущее (1 vCPU/1 GB) | сразу; canary → `/approve_scraper` |
 </content>

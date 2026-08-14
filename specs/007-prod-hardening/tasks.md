@@ -25,8 +25,10 @@
 
 ## Phase 2: Ручная приёмка владельца (owner-side, на VPS)
 
-- [ ] T705 [US1] Установить systemd-юнит на VPS: поправить WorkingDirectory под
-  реальный путь (VPS_APP_DIR) → `sudo cp deploy/jobpilot.service
+- [ ] T705 [US1] Установить systemd-юнит на VPS: сперва сверить реальный путь
+  репо на VPS (в `deploy/jobpilot.service` стоит placeholder `/opt/jobpilot`,
+  фактический путь может отличаться — напр. `/home/ai-agent/...`) → поправить
+  WorkingDirectory под реальный путь (VPS_APP_DIR) → `sudo cp deploy/jobpilot.service
   /etc/systemd/system/` → `systemctl daemon-reload` → `systemctl enable --now
   jobpilot` → `systemctl status jobpilot` = active (exited).
 - [ ] T706 [US1] Ребут-тест: `sudo reboot` → после старта `docker compose ps` все

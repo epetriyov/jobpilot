@@ -1,4 +1,4 @@
-# Implementation Plan: Скрейперы карьерных порталов (7 сайтов) — Этап 5
+# Implementation Plan: Скрейперы карьерных порталов (10 сайтов) — Этап 5
 
 **Branch**: `005-sites` | **Date**: 2026-08-12 | **Spec**: [spec.md](spec.md)
 
@@ -16,11 +16,14 @@
 (FR-004). Канарейка + `/approve_scraper <site>` — человек в контуре (constitution VI). Eval
 `sites_parse` per-site — field-completeness ([S-E2]).
 
-**Реализация разбита на две волны** (см. research.md §2, tasks.md):
-- **Лёгкая волна** (httpx, без браузера, запускается на текущем железе): Яндекс, VK, Avito +
-  Сбер/Т-Банк/Альфа при подтверждённом JSON-эндпоинте.
-- **Тяжёлая волна** (Playwright, гейт апгрейдом до 4 vCPU / 8 GB): Ozon + любой из
-  Сбер/Т-Банк/Альфа, оказавшийся SPA-only.
+**Реализация разбита на волны** (см. research.md §2, tasks.md):
+- **Волна A** (httpx SSR-HTML, текущее железо): Яндекс, VK, Avito.
+- **Волна B** (httpx JSON после XHR-спайка, текущее железо): Сбер, Т-Банк, Альфа.
+- **Волна C** (Playwright, гейт апгрейдом до 4 vCPU / 8 GB): Ozon + любой из Сбер/Т-Банк/Альфа,
+  оказавшийся SPA-only.
+- **Волна D** (httpx публичные JSON-фиды single-employer, текущее железо): Navio, МТС, RWB/WB —
+  добавлена после исходного плана (7→10 сайтов), синхронизирована ретроспективно (docs/decisions/ADR-001).
+  `mws` рассмотрен и исключён (Qrator рвёт прод-egress, scraping-risks.md §3a).
 
 ## Technical Context
 
@@ -99,6 +102,14 @@ eval/runners/sites_parse.py                       # per-site completeness + ре
 разделение **транспорт (httpx|playwright) ↔ чистый парсер**: golden тестирует парсер на
 записанном payload и не зависит от способа добычи; смена HTML→JSON или httpx→Playwright не ломает
 golden и не трогает домен (DOMAIN.md §5 «смена API→scrape→email — только новые адаптеры»).
+
+**Robots-парсер: `protego` вместо stdlib `urllib.robotparser`.** `http_transport.py` проверяет
+robots.txt целевого пути (FR-006, [S-C10]) через `protego.Protego` (парсер из Scrapy), а не
+`urllib.robotparser.RobotFileParser`. Причина: `urllib` ошибочно нормализует `Disallow: /?` →
+`/` (блокирует весь сайт вместо трекинг-параметров) и неверно трактует `*`-wildcard / `$`-якорь;
+на реальном robots Яндекса это давало ложный запрет и блокировало 🟢-источник. `protego` трактует
+эти паттерны корректно. ⚠️ У `protego` обратный urllib порядок аргументов:
+`can_fetch(url, user_agent)`. Решение зафиксировано в docs/decisions/ADR-001.
 
 ## Волны реализации (привязка к железу)
 
